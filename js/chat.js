@@ -43,25 +43,27 @@ async function initEngine() {
         AI_STATUS_TEXT_WIDGET.textContent = "מאתחל מנוע AI...";
         PROGRESS_WRAP_WIDGET.style.display = "block";
 
+        // Attempting a safer initialization for Qwen 2.5
         engine = await pipeline('text-generation', modelId, {
-            dtype: 'q4',
+            dtype: 'q4', // Using quantized 4-bit for smaller memory footprint
             device: 'webgpu',
             progress_callback: (item) => {
                 if (item.status === 'progress') {
                     const progress = Math.round(item.progress);
                     PROGRESS_FILL_WIDGET.style.width = `${progress}%`;
-                    PROGRESS_TEXT_WIDGET.textContent = `טוען: ${progress}%`;
+                    PROGRESS_TEXT_WIDGET.textContent = `טוען רכיבים: ${progress}%`;
                 }
             }
         }).catch(async (err) => {
-            console.warn("Retrying with CPU...");
+            console.warn("WebGPU not supported or failed, falling back to CPU...", err);
             return await pipeline('text-generation', modelId, {
-                dtype: 'q4',
+                dtype: 'fp32', // Some CPUs handle fp32 better than q4 if they lack specific instructions
                 device: 'cpu',
                 progress_callback: (item) => {
                     if (item.status === 'progress') {
                         const progress = Math.round(item.progress);
                         PROGRESS_FILL_WIDGET.style.width = `${progress}%`;
+                        PROGRESS_TEXT_WIDGET.textContent = `טוען (מצב תאימות): ${progress}%`;
                     }
                 }
             });
