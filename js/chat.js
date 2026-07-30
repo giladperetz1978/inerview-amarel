@@ -138,10 +138,9 @@ async function processRemoteAIRequest(messages, container) {
     const activeApiKey = rawKey.trim().replace(/^['"]|['"]$/g, '');
     
     // DEBUG: Logs key status to Console
+    console.log(`DEBUG: Final key starts with: "${activeApiKey.substring(0, 3)}..." (Length: ${activeApiKey.length})`);
     if (activeApiKey === "AI_CLOUD_KEY_PLACEHOLDER") {
-        console.warn("DEBUG: AI_CLOUD_KEY_PLACEHOLDER was not replaced during deployment!");
-    } else {
-        console.log(`DEBUG: Key looks valid (Length: ${activeApiKey.length})`);
+        console.warn("DEBUG: Replacement failure!");
     }
 
     try {
