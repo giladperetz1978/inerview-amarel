@@ -64,34 +64,34 @@ if (CLOSE_WIDGET) {
 
 async function checkServerHealth() {
     AI_STATUS_WIDGET.classList.add("loading");
-    AI_STATUS_TEXT_WIDGET.textContent = "בודק חיבור לשרתים...";
+    AI_STATUS_TEXT_WIDGET.textContent = "בודק חיבור ל-LocalAI...";
     
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
         
-        // Try local server first as preferred fallback
+        // Prioritize LocalAI
         const res = await fetch(`${AI_CONFIG.local.baseUrl}/models`, { signal: controller.signal });
         clearTimeout(timeoutId);
         
         if (res.ok) {
             currentMode = "local";
-            if (AI_WIDGET_TITLE) AI_WIDGET_TITLE.textContent = "עוזר AI מקומי";
+            if (AI_WIDGET_TITLE) AI_WIDGET_TITLE.textContent = "עוזר AI מקומי (LocalAI)";
             AI_STATUS_WIDGET.classList.remove("loading");
             AI_STATUS_WIDGET.classList.add("ready");
-            AI_STATUS_TEXT_WIDGET.textContent = "מחובר לשרת מקומי (מהיר)";
+            AI_STATUS_TEXT_WIDGET.textContent = "מחובר ל-LocalAI (localhost)";
             return;
         }
     } catch (err) {
         // Local failed
     }
 
-    // Default to AION Cloud provider
-    currentMode = "cloud";
-    if (AI_WIDGET_TITLE) AI_WIDGET_TITLE.textContent = "עוזר AI (ענן)";
+    // Fallback info
+    currentMode = "local"; // Still keep local for now since user requested it
+    if (AI_WIDGET_TITLE) AI_WIDGET_TITLE.textContent = "עוזר AI מקומי";
     AI_STATUS_WIDGET.classList.remove("loading");
-    AI_STATUS_WIDGET.classList.add("ready");
-    AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (AION)";
+    AI_STATUS_WIDGET.classList.add("error");
+    AI_STATUS_TEXT_WIDGET.textContent = "לא נמצא שרת LocalAI פעיל (localhost:8080)";
 }
 
 function appendMessage(role, text, container) {
