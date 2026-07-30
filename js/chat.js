@@ -23,7 +23,7 @@ const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 // AI Configuration 
 const AI_CONFIG = {
     cloud: {
-        baseUrl: "https://api.aionresearch.io/v1",
+        baseUrl: "https://api.aionlabs.ai/v1",
         model: "aion-1.0",
         apiKey: "AI_CLOUD_KEY_PLACEHOLDER"
     },
