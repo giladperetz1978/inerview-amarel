@@ -20,17 +20,22 @@ const FAB = document.getElementById("btn-ai-fab");
 const WIDGET = document.getElementById("ai-chat-widget");
 const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 
-// AI Configuration (Sync with smart-data-extractor logic)
+// AI Configuration (Sync with smart-data-extractor logic + Gemini)
 const AI_CONFIG = {
     cloud: {
         baseUrl: "https://api.moonshot.ai/v1",
         model: "kimi-k2.5",
-        apiKey: "" // TODO: Past your sk-fd... key here
+        apiKey: "" 
     },
     openrouter: {
         baseUrl: "https://openrouter.ai/api/v1",
         model: "deepseek/deepseek-r1",
-        apiKey: "" // TODO: Paste your sk-or... key here
+        apiKey: "" 
+    },
+    gemini: {
+        baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+        model: "gemini-1.5-flash",
+        apiKey: "YOUR_GEMINI_KEY" // PLACEHOLDER
     },
     local: {
         baseUrl: "http://localhost:8000/v1",
@@ -38,7 +43,7 @@ const AI_CONFIG = {
     }
 };
 
-let currentMode = "cloud"; 
+let currentMode = "gemini"; // Default to Gemini as requested
 
 // FAB & Widget UI Toggles
 FAB.addEventListener("click", () => {
@@ -68,14 +73,14 @@ async function checkServerHealth() {
             return;
         }
     } catch (err) {
-        // Local failed, continue to cloud
+        // Local failed
     }
 
-    // Default to cloud for "Works for everyone"
-    currentMode = "cloud";
+    // Default to Gemini as the main cloud provider
+    currentMode = "gemini";
     AI_STATUS_WIDGET.classList.remove("loading");
     AI_STATUS_WIDGET.classList.add("ready");
-    AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (AI)";
+    AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (Gemini)";
 }
 
 function appendMessage(role, text, container) {
@@ -115,20 +120,46 @@ async function processRemoteAIRequest(messages, container) {
     const msgContent = aiMsgDiv.querySelector(".msg-content");
     
     const config = AI_CONFIG[currentMode];
-    const headers = { 'Content-Type': 'application/json' };
-    if (config.apiKey) {
-        headers['Authorization'] = `Bearer ${config.apiKey}`;
-    }
+    let url, body, headers;
 
     try {
-        const response = await fetch(`${config.baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
+        if (currentMode === "gemini") {
+            // Google Gemini Format
+            url = `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`;
+            headers = { 'Content-Type': 'application/json' };
+            
+            const systemMsg = messages.find(m => m.role === "system")?.content || "";
+            const userMessages = messages.filter(m => m.role !== "system");
+            
+            body = {
+                contents: userMessages.map(msg => ({
+                    role: msg.role === "user" ? "user" : "model",
+                    parts: [{ text: msg.content }]
+                })),
+                generationConfig: { temperature: 0.7 }
+            };
+
+            if (systemMsg) {
+                body.systemInstruction = { parts: [{ text: systemMsg }] };
+            }
+        } else {
+            // OpenAI Compatible Format (Moonshot, OpenRouter, Local)
+            url = `${config.baseUrl}/chat/completions`;
+            headers = { 'Content-Type': 'application/json' };
+            if (config.apiKey) {
+                headers['Authorization'] = `Bearer ${config.apiKey}`;
+            }
+            body = {
                 model: config.model,
                 messages: messages,
                 temperature: 0.7
-            })
+            };
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(body)
         });
 
         if (!response.ok) {
@@ -137,7 +168,13 @@ async function processRemoteAIRequest(messages, container) {
         }
 
         const data = await response.json();
-        const fullRes = data.choices[0].message.content;
+        
+        let fullRes;
+        if (currentMode === "gemini") {
+            fullRes = data.candidates?.[0]?.content?.parts?.[0]?.text || "סליחה, לא התקבלה תשובה.";
+        } else {
+            fullRes = data.choices[0].message.content;
+        }
         
         msgContent.innerHTML = fullRes.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
         container.scrollTop = container.scrollHeight;
