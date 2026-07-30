@@ -20,9 +20,20 @@ const FAB = document.getElementById("btn-ai-fab");
 const WIDGET = document.getElementById("ai-chat-widget");
 const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 
-// Local AI Server Configuration (like smart-data-extractor)
-const LOCAL_AI_URL = "http://localhost:8000/v1/chat/completions";
-const LOCAL_MODEL = "kimi-k2.5"; // Default from your other app
+// AI Configuration (Matching pdf-wizards.com behavior)
+const AI_CONFIG = {
+    cloud: {
+        baseUrl: "https://api.moonshot.ai/v1",
+        model: "kimi-k2.5",
+        apiKey: "sk-fdVIhwxXOQqPrIcDecMk2PNKPISc1gWrme7oGoFH5jJvCiLA" 
+    },
+    local: {
+        baseUrl: "http://localhost:8000/v1",
+        model: "kimi-k2.5"
+    }
+};
+
+let currentMode = "cloud"; // Default to cloud so it works for everyone from anywhere
 
 // FAB & Widget UI Toggles
 FAB.addEventListener("click", () => {
@@ -34,27 +45,30 @@ FAB.addEventListener("click", () => {
 
 async function checkServerHealth() {
     AI_STATUS_WIDGET.classList.add("loading");
-    AI_STATUS_TEXT_WIDGET.textContent = "בודק חיבור לשרת מקומי...";
+    AI_STATUS_TEXT_WIDGET.textContent = "בודק חיבור לשרת...";
     
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
         
-        // Try to fetch models to check if server is up
-        const res = await fetch("http://localhost:8000/v1/models", { signal: controller.signal });
+        // Try local server first as preferred fallback (like in pdf-wizards)
+        const res = await fetch(`${AI_CONFIG.local.baseUrl}/models`, { signal: controller.signal });
         clearTimeout(timeoutId);
         
         if (res.ok) {
+            currentMode = "local";
             AI_STATUS_WIDGET.classList.remove("loading");
             AI_STATUS_WIDGET.classList.add("ready");
-            AI_STATUS_TEXT_WIDGET.textContent = "מחובר לשרת מקומי";
+            AI_STATUS_TEXT_WIDGET.textContent = "מחובר לשרת מקומי (מהיר)";
         } else {
-            throw new Error("Server not responding");
+            throw new Error("No local server");
         }
     } catch (err) {
+        // Fallback to cloud - this makes it "work for everyone"
+        currentMode = "cloud";
         AI_STATUS_WIDGET.classList.remove("loading");
-        AI_STATUS_WIDGET.classList.add("error");
-        AI_STATUS_TEXT_WIDGET.textContent = "שרת AI לא זמין (וודא ש-LM Studio/Ollama מורץ)";
+        AI_STATUS_WIDGET.classList.add("ready");
+        AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (Moonshot AI)";
     }
 }
 
@@ -94,18 +108,27 @@ async function processRemoteAIRequest(messages, container) {
     const aiMsgDiv = appendMessage("ai", "...", container);
     const msgContent = aiMsgDiv.querySelector(".msg-content");
     
+    const config = AI_CONFIG[currentMode];
+    const headers = { 'Content-Type': 'application/json' };
+    if (config.apiKey) {
+        headers['Authorization'] = `Bearer ${config.apiKey}`;
+    }
+
     try {
-        const response = await fetch(LOCAL_AI_URL, {
+        const response = await fetch(`${config.baseUrl}/chat/completions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({
-                model: LOCAL_MODEL,
+                model: config.model,
                 messages: messages,
                 temperature: 0.7
             })
         });
 
-        if (!response.ok) throw new Error("API Error");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error?.message || "API Error");
+        }
 
         const data = await response.json();
         const fullRes = data.choices[0].message.content;
@@ -116,8 +139,8 @@ async function processRemoteAIRequest(messages, container) {
         AI_STATUS_WIDGET.classList.remove("loading");
         AI_STATUS_WIDGET.classList.add("ready");
     } catch (err) {
-        console.error("Local AI Error:", err);
-        msgContent.innerHTML = "שגיאה בתקשורת עם השרת המקומי. וודא שהשרת פועל בפורט 8000.";
+        console.error("AI Error:", err);
+        msgContent.innerHTML = `שגיאה בתקשורת (${currentMode === "local" ? "שרת מקומי" : "ענן"}): ${err.message}`;
         AI_STATUS_WIDGET.classList.remove("loading");
         AI_STATUS_WIDGET.classList.add("error");
     }
