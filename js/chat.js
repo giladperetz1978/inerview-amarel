@@ -11,33 +11,38 @@ const PROGRESS_FILL = document.getElementById("ai-progress-fill");
 const PROGRESS_TEXT = document.getElementById("ai-progress-text");
 
 let engine = null;
-const modelId = "Gemma-2-2b-it-q4f16_1-MLC"; // Efficient 4-bit version of Gemma 2 2B
+const modelId = "Gemma-2-2b-it-q4f16_1-MLC"; // Efficient 4-bit version
+const chatConfig = {
+    temperature: 0.7,
+    top_p: 0.95,
+};
 
 async function initEngine() {
     if (engine) return;
 
     try {
         AI_STATUS.classList.add("loading");
-        AI_STATUS_TEXT.textContent = "מאתחל מנוע AI...";
+        AI_STATUS_TEXT.textContent = "מאתחל מנוע AI (דורש WebGPU)...";
         PROGRESS_WRAP.style.display = "block";
 
         engine = await webllm.CreateMLCEngine(modelId, {
             initProgressCallback: (report) => {
                 const progress = Math.round(report.progress * 100);
                 PROGRESS_FILL.style.width = `${progress}%`;
-                PROGRESS_TEXT.textContent = report.text;
+                PROGRESS_TEXT.textContent = `טוען: ${progress}% - ${report.text}`;
                 if (progress >= 100) {
-                    PROGRESS_WRAP.style.display = "none";
+                    setTimeout(() => PROGRESS_WRAP.style.display = "none", 1000);
                 }
             }
         });
 
         AI_STATUS.classList.remove("loading");
         AI_STATUS.classList.add("ready");
-        AI_STATUS_TEXT.textContent = "המודל מוכן (Gemma-2-2B)";
+        AI_STATUS_TEXT.textContent = "המודל מוכן מקומית (Gemma-2-2B)";
     } catch (err) {
         console.error("AI Init Error:", err);
-        AI_STATUS_TEXT.textContent = "שגיאה בטעינת המודל. וודא ש-WebGPU נתמך.";
+        AI_STATUS_TEXT.textContent = "שגיאה. וודא ש-WebGPU מאופשר בדפדפן (Flag).";
+        PROGRESS_TEXT.textContent = "שגיאת טעינה: " + err.message;
         AI_STATUS.classList.remove("loading");
     }
 }
