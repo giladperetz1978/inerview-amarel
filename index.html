@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#F15A29" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta
+      name="description"
+      content="מאגר תובנות, סיטואציות ומקרים מראיונות גיוס – Amarel"
+    />
+    <title>מאגר ותובנות ראיונות באמרל</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icons/logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <h1>מאגר ותובנות ראיונות באמרל</h1>
+        <span class="subtitle">שיתוף ידע בין מנהלים מגייסים</span>
+      </div>
+      <div class="logo-wrap" title="Amarel">
+        <img src="icons/logo.png" alt="Amarel – The How Company" />
+      </div>
+    </header>
+
+    <nav class="bottom-nav no-print" aria-label="ניווט ראשי">
+      <button type="button" class="nav-btn active" data-nav="home">
+        <span class="icon" aria-hidden="true">🏠</span>
+        ראשי
+      </button>
+      <button type="button" class="nav-btn" data-nav="form">
+        <span class="icon" aria-hidden="true">➕</span>
+        הוספה
+      </button>
+      <button type="button" class="nav-btn" data-nav="search">
+        <span class="icon" aria-hidden="true">🔍</span>
+        חיפוש
+      </button>
+    </nav>
+
+    <main class="main">
+      <!-- HOME -->
+      <section class="view active" data-view="home">
+        <div id="install-banner" class="install-banner no-print">
+          <p>התקינו את האפליקציה למסך הבית לגישה מהירה.</p>
+          <div class="btn-row" style="flex: 0 0 auto">
+            <button type="button" class="btn btn-primary" id="btn-install">התקנה</button>
+            <button type="button" class="btn btn-outline" id="btn-dismiss-install">לא עכשיו</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="num" id="stat-total">0</span>
+            <span class="lbl">תובנות</span>
+          </div>
+          <div class="stat">
+            <span class="num" id="stat-deps">0</span>
+            <span class="lbl">מחלקות</span>
+          </div>
+          <div class="stat">
+            <span class="num" id="stat-jobs">0</span>
+            <span class="lbl">משרות</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>ברוכים הבאים</h2>
+          <p class="hint">
+            כאן מנהלים מגייסים משתפים תובנות, סיטואציות ומקרים מראיונות – כדי שכולם יוכלו
+            ללמוד ולחפש לפי מילה, תפקיד, מחלקה או משרה.
+          </p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary" id="btn-go-add">הוספת תובנה</button>
+            <button type="button" class="btn btn-secondary" id="btn-go-search">חיפוש במאגר</button>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <h3>אחרונים במאגר</h3>
+          <span class="badge" id="recent-badge">חדש</span>
+        </div>
+        <div id="recent-list" class="insight-list"></div>
+
+        <div class="card no-print" style="margin-top: 16px">
+          <h2>ניהול מאגר</h2>
+          <p class="hint">
+            כרגע השמירה מקומית במכשיר (מוכנה לחיבור לשרת בעתיד). מומלץ לגבות מעת לעת.
+          </p>
+          <button type="button" class="btn btn-outline btn-block" id="btn-backup">
+            הורדת גיבוי JSON
+          </button>
+        </div>
+      </section>
+
+      <!-- FORM -->
+      <section class="view" data-view="form">
+        <div class="card">
+          <h2>הוספת תובנות מראיון</h2>
+          <p class="hint">
+            שדות חובה מסומנים ב־<span class="req">*</span>. יש למלא לפחות אחד מבין תובנות /
+            סיטואציות / מקרים.
+          </p>
+
+          <form id="insight-form" novalidate>
+            <div class="field">
+              <label for="f-manager-name">שם המנהל <span class="req">*</span></label>
+              <input
+                id="f-manager-name"
+                name="managerName"
+                type="text"
+                autocomplete="name"
+                required
+                placeholder="לדוגמה: ישראל ישראלי"
+              />
+            </div>
+
+            <div class="field">
+              <label for="f-manager-role">תפקיד המנהל <span class="req">*</span></label>
+              <input
+                id="f-manager-role"
+                name="managerRole"
+                type="text"
+                list="dl-roles"
+                required
+                placeholder="לדוגמה: מנהל צוות פיתוח"
+              />
+              <datalist id="dl-roles"></datalist>
+              <span class="help">טקסט חופשי – יישמר להשלמה אוטומטית בהמשך</span>
+            </div>
+
+            <div class="field">
+              <label for="f-department">מחלקה <span class="req">*</span></label>
+              <select id="f-department" name="department">
+                <option value="">בחרו מחלקה</option>
+              </select>
+              <div class="input-row" style="margin-top: 8px">
+                <input
+                  id="f-department-new"
+                  type="text"
+                  placeholder="או הוסיפו מחלקה חדשה…"
+                  aria-label="מחלקה חדשה"
+                />
+              </div>
+              <span class="help">אפשר לבחור מהרשימה או להוסיף מחלקה חדשה בשורה למטה</span>
+            </div>
+
+            <div class="field">
+              <label for="f-job">שם המשרה (קטגוריה) <span class="req">*</span></label>
+              <input
+                id="f-job"
+                name="jobTitle"
+                type="text"
+                list="dl-jobs"
+                required
+                placeholder="לדוגמה: מפתח/ת Full Stack"
+              />
+              <datalist id="dl-jobs"></datalist>
+              <span class="help">מלל חופשי – יישמר במאגר המשרות לחיפוש עתידי</span>
+            </div>
+
+            <div class="field">
+              <label for="f-interviewee">שם המרואיין <span class="req">*</span></label>
+              <input
+                id="f-interviewee"
+                name="intervieweeName"
+                type="text"
+                required
+                placeholder="שם המועמד/ת"
+              />
+            </div>
+
+            <div class="section-title">
+              <h3>תוכן לשיתוף</h3>
+            </div>
+
+            <div class="field">
+              <label for="f-insights">תובנות מהראיון</label>
+              <textarea
+                id="f-insights"
+                name="insights"
+                placeholder="מה למדתם? נקודות מפתח, דפוסים, מסקנות…"
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label for="f-situations">סיטואציות</label>
+              <textarea
+                id="f-situations"
+                name="situations"
+                placeholder="סיטואציות מעניינות שעלו בראיון…"
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label for="f-cases">מקרים ותגובות</label>
+              <textarea
+                id="f-cases"
+                name="cases"
+                placeholder="מקרים ספציפיים, תגובות המועמד/ת, איך התמודדתם…"
+              ></textarea>
+            </div>
+
+            <div class="btn-row">
+              <button type="submit" class="btn btn-primary" id="btn-save">שמירה במאגר</button>
+              <button type="button" class="btn btn-outline" id="btn-reset">ניקוי</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>הוספת מחלקה לרשימה</h2>
+          <p class="hint">מחלקות חדשות זמינות מיד בטופס ובסינון החיפוש.</p>
+          <div class="input-row">
+            <input id="new-department-name" type="text" placeholder="שם מחלקה חדשה" />
+            <button type="button" class="btn btn-secondary" id="btn-add-department">הוספה</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEARCH -->
+      <section class="view" data-view="search">
+        <div class="card">
+          <h2>חיפוש במאגר</h2>
+          <p class="hint">חיפוש חופשי + סינון לפי מחלקה, משרה או תפקיד מנהל.</p>
+          <div class="search-bar">
+            <input
+              id="search-q"
+              type="search"
+              placeholder="מילת מפתח, נושא, שם, סיטואציה…"
+              enterkeyhint="search"
+            />
+            <div class="filters">
+              <select id="filter-department" aria-label="סינון מחלקה"></select>
+              <select id="filter-job" aria-label="סינון משרה"></select>
+              <select id="filter-role" aria-label="סינון תפקיד מנהל"></select>
+            </div>
+            <button type="button" class="btn btn-outline btn-block" id="btn-clear-filters">
+              ניקוי סינונים
+            </button>
+          </div>
+        </div>
+
+        <div class="results-meta">
+          <span id="results-count">0 תוצאות</span>
+        </div>
+        <div id="results-list" class="insight-list"></div>
+      </section>
+    </main>
+
+    <!-- Detail modal -->
+    <div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+          <strong id="modal-title">פרטי רשומה</strong>
+          <button type="button" class="btn btn-outline" id="modal-close" aria-label="סגירה">✕</button>
+        </div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <!-- hidden selects used only as templates / populated in JS for form department -->
+    <select id="form-department" hidden></select>
+    <datalist id="dl-departments"></datalist>
+
+    <script src="js/storage.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
