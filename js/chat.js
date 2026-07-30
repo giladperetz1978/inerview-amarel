@@ -20,22 +20,22 @@ const FAB = document.getElementById("btn-ai-fab");
 const WIDGET = document.getElementById("ai-chat-widget");
 const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 
-// AI Configuration (Sync with smart-data-extractor logic + Gemini)
+// AI Configuration 
 const AI_CONFIG = {
     cloud: {
         baseUrl: "https://api.moonshot.ai/v1",
         model: "kimi-k2.5",
-        apiKey: "" 
+        apiKey: localStorage.getItem("AI_CLOUD_KEY") || "" 
     },
     openrouter: {
         baseUrl: "https://openrouter.ai/api/v1",
         model: "deepseek/deepseek-r1",
-        apiKey: "" 
+        apiKey: localStorage.getItem("AI_OPENROUTER_KEY") || "" 
     },
     gemini: {
         baseUrl: "https://generativelanguage.googleapis.com/v1beta",
         model: "gemini-1.5-flash",
-        apiKey: "" // Past your Gemini API key here locally
+        apiKey: localStorage.getItem("AI_GEMINI_KEY") || "" 
     },
     local: {
         baseUrl: "http://localhost:8000/v1",
