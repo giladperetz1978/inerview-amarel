@@ -20,68 +20,41 @@ const FAB = document.getElementById("btn-ai-fab");
 const WIDGET = document.getElementById("ai-chat-widget");
 const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 
-let engine = null;
-const modelId = "onnx-community/Qwen2.5-0.5B-Instruct"; 
+// Local AI Server Configuration (like smart-data-extractor)
+const LOCAL_AI_URL = "http://localhost:8000/v1/chat/completions";
+const LOCAL_MODEL = "kimi-k2.5"; // Default from your other app
 
 // FAB & Widget UI Toggles
 FAB.addEventListener("click", () => {
     WIDGET.classList.toggle("hidden");
     if (!WIDGET.classList.contains("hidden")) {
-        initEngine();
+        checkServerHealth();
     }
 });
 
-CLOSE_WIDGET.addEventListener("click", () => {
-    WIDGET.classList.add("hidden");
-});
-
-async function initEngine() {
-    if (engine) return;
-
+async function checkServerHealth() {
+    AI_STATUS_WIDGET.classList.add("loading");
+    AI_STATUS_TEXT_WIDGET.textContent = "בודק חיבור לשרת מקומי...";
+    
     try {
-        AI_STATUS_WIDGET.classList.add("loading");
-        AI_STATUS_TEXT_WIDGET.textContent = "מאתחל מנוע AI...";
-        PROGRESS_WRAP_WIDGET.style.display = "block";
-
-        // Attempting a safer initialization for Qwen 2.5
-        engine = await pipeline('text-generation', modelId, {
-            dtype: 'q4', // Using quantized 4-bit for smaller memory footprint
-            device: 'webgpu',
-            progress_callback: (item) => {
-                if (item.status === 'progress') {
-                    const progress = Math.round(item.progress);
-                    PROGRESS_FILL_WIDGET.style.width = `${progress}%`;
-                    PROGRESS_TEXT_WIDGET.textContent = `טוען רכיבים: ${progress}%`;
-                }
-            }
-        }).catch(async (err) => {
-            console.warn("WebGPU not supported or failed, falling back to CPU...", err);
-            return await pipeline('text-generation', modelId, {
-                dtype: 'fp32', // Some CPUs handle fp32 better than q4 if they lack specific instructions
-                device: 'cpu',
-                progress_callback: (item) => {
-                    if (item.status === 'progress') {
-                        const progress = Math.round(item.progress);
-                        PROGRESS_FILL_WIDGET.style.width = `${progress}%`;
-                        PROGRESS_TEXT_WIDGET.textContent = `טוען (מצב תאימות): ${progress}%`;
-                    }
-                }
-            });
-        });
-
-        AI_STATUS_WIDGET.classList.remove("loading");
-        AI_STATUS_WIDGET.classList.add("ready");
-        AI_STATUS_TEXT_WIDGET.textContent = "AI מוכן";
-        setTimeout(() => {
-            PROGRESS_WRAP_WIDGET.style.display = "none";
-        }, 1500);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        // Try to fetch models to check if server is up
+        const res = await fetch("http://localhost:8000/v1/models", { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (res.ok) {
+            AI_STATUS_WIDGET.classList.remove("loading");
+            AI_STATUS_WIDGET.classList.add("ready");
+            AI_STATUS_TEXT_WIDGET.textContent = "מחובר לשרת מקומי";
+        } else {
+            throw new Error("Server not responding");
+        }
     } catch (err) {
-        console.error("AI Init Error:", err);
         AI_STATUS_WIDGET.classList.remove("loading");
         AI_STATUS_WIDGET.classList.add("error");
-        AI_STATUS_TEXT_WIDGET.textContent = `שגיאת טעינה: ${err.message.slice(0, 30)}...`;
-        PROGRESS_TEXT_WIDGET.textContent = "נסו לרענן או לבדוק חיבור אינטרנט.";
-        PROGRESS_WRAP_WIDGET.style.display = "block";
+        AI_STATUS_TEXT_WIDGET.textContent = "שרת AI לא זמין (וודא ש-LM Studio/Ollama מורץ)";
     }
 }
 
@@ -98,7 +71,7 @@ function appendMessage(role, text, container) {
 
 async function handleChat(inputEl, container) {
     const query = inputEl.value.trim();
-    if (!query || !engine) return;
+    if (!query) return;
 
     inputEl.value = "";
     appendMessage("user", query, container);
@@ -113,37 +86,40 @@ async function handleChat(inputEl, container) {
         { role: "user", content: `הנה כמה תובנות מהמאגר שלנו:\n${contextStr}\n\nשאלה: ${query}\nענה בעברית.` }
     ];
 
-    processAIRequest(messages, container);
+    processRemoteAIRequest(messages, container);
 }
 
-async function processAIRequest(messages, container) {
+async function processRemoteAIRequest(messages, container) {
+    AI_STATUS_WIDGET.classList.add("loading");
+    const aiMsgDiv = appendMessage("ai", "...", container);
+    const msgContent = aiMsgDiv.querySelector(".msg-content");
+    
     try {
-        AI_STATUS_WIDGET.classList.add("loading");
-        const aiMsgDiv = appendMessage("ai", "...", container);
-        const msgContent = aiMsgDiv.querySelector(".msg-content");
-        let fullRes = "";
+        const response = await fetch(LOCAL_AI_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: LOCAL_MODEL,
+                messages: messages,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) throw new Error("API Error");
+
+        const data = await response.json();
+        const fullRes = data.choices[0].message.content;
         
-        const streamer = new TextStreamer(engine.tokenizer, {
-            skip_prompt: true,
-            callback_function: (text) => {
-                fullRes += text;
-                msgContent.innerHTML = fullRes.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-                container.scrollTop = container.scrollHeight;
-            }
-        });
-
-        await engine(messages, {
-            max_new_tokens: 500,
-            streamer,
-            temperature: 0.6,
-            do_sample: true,
-        });
-
+        msgContent.innerHTML = fullRes.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+        container.scrollTop = container.scrollHeight;
+        
         AI_STATUS_WIDGET.classList.remove("loading");
+        AI_STATUS_WIDGET.classList.add("ready");
     } catch (err) {
-        console.error("Chat Error:", err);
-        appendMessage("ai", "שגיאת עיבוד.", container);
+        console.error("Local AI Error:", err);
+        msgContent.innerHTML = "שגיאה בתקשורת עם השרת המקומי. וודא שהשרת פועל בפורט 8000.";
         AI_STATUS_WIDGET.classList.remove("loading");
+        AI_STATUS_WIDGET.classList.add("error");
     }
 }
 
@@ -151,7 +127,6 @@ async function processAIRequest(messages, container) {
 document.querySelectorAll(".btn-chip").forEach(btn => {
     btn.addEventListener("click", async () => {
         const action = btn.dataset.action;
-        if (!engine) return;
 
         const allInsights = JSON.parse(localStorage.getItem("amarel_insights_v1") || "[]");
         const contextStr = allInsights.slice(-10).map(ins => 
@@ -175,7 +150,7 @@ document.querySelectorAll(".btn-chip").forEach(btn => {
             { role: "user", content: `הקשר:\n${contextStr}\n\nשאלה: ${prompt}\nענה בעברית.` }
         ];
 
-        processAIRequest(messages, WIDGET_MESSAGES);
+        processRemoteAIRequest(messages, WIDGET_MESSAGES);
     });
 });
 
