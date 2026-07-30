@@ -21,6 +21,7 @@ async function initEngine() {
         AI_STATUS_TEXT.textContent = "מאתחל מנוע (ניסיון 1: WebGPU)...";
         PROGRESS_WRAP.style.display = "block";
 
+        console.log("Attempting WebGPU...");
         try {
             engine = await pipeline('text-generation', modelId, {
                 dtype: 'q4',
@@ -33,9 +34,10 @@ async function initEngine() {
                     }
                 }
             });
+            AI_STATUS_TEXT.textContent = "Gemma 2 2B מוכן (מצב WebGPU חזק)";
         } catch (gpuErr) {
             console.warn("WebGPU failed, falling back to CPU:", gpuErr);
-            AI_STATUS_TEXT.textContent = "WebGPU לא זמין, עובר למצב CPU (איטי יותר)...";
+            AI_STATUS_TEXT.textContent = "WebGPU לא נתמך במכשיר. עובר למצב CPU...";
             engine = await pipeline('text-generation', modelId, {
                 dtype: 'q4',
                 device: 'cpu',
@@ -43,15 +45,15 @@ async function initEngine() {
                     if (item.status === 'progress') {
                         const progress = Math.round(item.progress);
                         PROGRESS_FILL.style.width = `${progress}%`;
-                        PROGRESS_TEXT.textContent = `טוען (CPU): ${progress}% - ${item.file}`;
+                        PROGRESS_TEXT.textContent = `טוען ב-CPU: ${progress}% - ${item.file}`;
                     }
                 }
             });
+            AI_STATUS_TEXT.textContent = "Gemma 2 2B מוכן (מצב CPU - איטי יותר)";
         }
 
         AI_STATUS.classList.remove("loading");
         AI_STATUS.classList.add("ready");
-        AI_STATUS_TEXT.textContent = "Gemma 2 2B מוכן מקומית (V2)";
         setTimeout(() => {
             PROGRESS_WRAP.style.display = "none";
         }, 2000);
