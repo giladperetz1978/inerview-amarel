@@ -39,12 +39,12 @@ const AI_CONFIG = {
         apiKey: "AI_GEMINI_KEY_PLACEHOLDER" || ""
     },
     local: {
-        baseUrl: "http://localhost:8000/v1",
-        model: "kimi-k2.5"
+        baseUrl: "http://localhost:8080/v1",
+        model: "gpt-4"
     }
 };
 
-let currentMode = "cloud"; // Default to AION Cloud as requested
+let currentMode = "local"; // Changed to LocalAI as requested
 
 // FAB & Widget UI Toggles
 if (FAB) {
