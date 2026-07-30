@@ -135,10 +135,15 @@ async function processRemoteAIRequest(messages, container) {
 
     // Use placeholder directly if deployment didn't replace it (local testing)
     let rawKey = config.apiKey;
-    const activeApiKey = rawKey.trim().replace(/^['"]|['"]$/g, '');
+    let activeApiKey = rawKey.trim().replace(/^['"]|['"]$/g, '');
+    
+    // Safety check: if user included "Bearer " in the secret, strip it
+    if (activeApiKey.toLowerCase().startsWith("bearer ")) {
+        activeApiKey = activeApiKey.substring(7).trim();
+    }
     
     // DEBUG: Logs key status to Console
-    console.log(`DEBUG: Final key starts with: "${activeApiKey.substring(0, 3)}..." (Length: ${activeApiKey.length})`);
+    console.log(`DEBUG: Final key info: "${activeApiKey.substring(0, 5)}...${activeApiKey.slice(-5)}" (Total length: ${activeApiKey.length})`);
     if (activeApiKey === "AI_CLOUD_KEY_PLACEHOLDER") {
         console.warn("DEBUG: Replacement failure!");
     }
