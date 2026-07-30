@@ -20,12 +20,17 @@ const FAB = document.getElementById("btn-ai-fab");
 const WIDGET = document.getElementById("ai-chat-widget");
 const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 
-// AI Configuration (Matching pdf-wizards.com behavior)
+// AI Configuration (Sync with smart-data-extractor logic)
 const AI_CONFIG = {
     cloud: {
         baseUrl: "https://api.moonshot.ai/v1",
         model: "kimi-k2.5",
-        apiKey: "sk-fdVIhwxXOQqPrIcDecMk2PNKPISc1gWrme7oGoFH5jJvCiLA" 
+        apiKey: "" // TODO: Past your sk-fd... key here
+    },
+    openrouter: {
+        baseUrl: "https://openrouter.ai/api/v1",
+        model: "deepseek/deepseek-r1",
+        apiKey: "" // TODO: Paste your sk-or... key here
     },
     local: {
         baseUrl: "http://localhost:8000/v1",
@@ -33,7 +38,7 @@ const AI_CONFIG = {
     }
 };
 
-let currentMode = "cloud"; // Default to cloud so it works for everyone from anywhere
+let currentMode = "cloud"; 
 
 // FAB & Widget UI Toggles
 FAB.addEventListener("click", () => {
@@ -45,13 +50,13 @@ FAB.addEventListener("click", () => {
 
 async function checkServerHealth() {
     AI_STATUS_WIDGET.classList.add("loading");
-    AI_STATUS_TEXT_WIDGET.textContent = "בודק חיבור לשרת...";
+    AI_STATUS_TEXT_WIDGET.textContent = "בודק חיבור לשרתים...";
     
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
         
-        // Try local server first as preferred fallback (like in pdf-wizards)
+        // Try local server first as preferred fallback
         const res = await fetch(`${AI_CONFIG.local.baseUrl}/models`, { signal: controller.signal });
         clearTimeout(timeoutId);
         
@@ -60,16 +65,17 @@ async function checkServerHealth() {
             AI_STATUS_WIDGET.classList.remove("loading");
             AI_STATUS_WIDGET.classList.add("ready");
             AI_STATUS_TEXT_WIDGET.textContent = "מחובר לשרת מקומי (מהיר)";
-        } else {
-            throw new Error("No local server");
+            return;
         }
     } catch (err) {
-        // Fallback to cloud - this makes it "work for everyone"
-        currentMode = "cloud";
-        AI_STATUS_WIDGET.classList.remove("loading");
-        AI_STATUS_WIDGET.classList.add("ready");
-        AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (Moonshot AI)";
+        // Local failed, continue to cloud
     }
+
+    // Default to cloud for "Works for everyone"
+    currentMode = "cloud";
+    AI_STATUS_WIDGET.classList.remove("loading");
+    AI_STATUS_WIDGET.classList.add("ready");
+    AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (AI)";
 }
 
 function appendMessage(role, text, container) {
