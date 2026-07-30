@@ -123,7 +123,7 @@ async function handleChat(inputEl, container) {
 }
 
 async function processRemoteAIRequest(messages, container) {
-    AI_STATUS_WIDGET.classList.add("loading");
+    if (AI_STATUS_WIDGET) AI_STATUS_WIDGET.classList.add("loading");
     const aiMsgDiv = appendMessage("ai", "...", container);
     const msgContent = aiMsgDiv.querySelector(".msg-content");
     
@@ -133,7 +133,8 @@ async function processRemoteAIRequest(messages, container) {
     try {
         if (currentMode === "gemini") {
             // Google Gemini Format
-            url = `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`;
+            const apiKey = config.apiKey.trim().replace(/^['"]|['"]$/g, '');
+            url = `${config.baseUrl}/models/${config.model}:generateContent?key=${apiKey}`;
             headers = { 'Content-Type': 'application/json' };
             
             const systemMsg = messages.find(m => m.role === "system")?.content || "";
