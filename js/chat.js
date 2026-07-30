@@ -12,6 +12,7 @@ const WIDGET_MESSAGES = document.getElementById("widget-messages");
 
 const AI_STATUS_TEXT_WIDGET = document.getElementById("ai-widget-status-text");
 const AI_STATUS_WIDGET = document.getElementById("ai-widget-status");
+const AI_WIDGET_TITLE = document.getElementById("ai-widget-title");
 const PROGRESS_WRAP_WIDGET = document.getElementById("widget-ai-progress");
 const PROGRESS_FILL_WIDGET = document.getElementById("widget-ai-progress-fill");
 const PROGRESS_TEXT_WIDGET = document.getElementById("widget-ai-progress-text");
@@ -75,6 +76,7 @@ async function checkServerHealth() {
         
         if (res.ok) {
             currentMode = "local";
+            if (AI_WIDGET_TITLE) AI_WIDGET_TITLE.textContent = "עוזר AI מקומי";
             AI_STATUS_WIDGET.classList.remove("loading");
             AI_STATUS_WIDGET.classList.add("ready");
             AI_STATUS_TEXT_WIDGET.textContent = "מחובר לשרת מקומי (מהיר)";
@@ -86,6 +88,7 @@ async function checkServerHealth() {
 
     // Default to AION Cloud provider
     currentMode = "cloud";
+    if (AI_WIDGET_TITLE) AI_WIDGET_TITLE.textContent = "עוזר AI (ענן)";
     AI_STATUS_WIDGET.classList.remove("loading");
     AI_STATUS_WIDGET.classList.add("ready");
     AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (AION)";
@@ -174,8 +177,15 @@ async function processRemoteAIRequest(messages, container) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || "API Error");
+            const errorText = await response.text();
+            let errorMessage = "API Error";
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error?.message || errorData.message || `Status ${response.status}`;
+            } catch (e) {
+                errorMessage = `Status ${response.status}: ${errorText.substring(0, 50)}`;
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
