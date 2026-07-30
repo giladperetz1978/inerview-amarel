@@ -35,6 +35,9 @@
       refreshDatalists();
       $("#insight-form")?.querySelector("input,select,textarea")?.focus?.();
     }
+    if (name === "chat") {
+      if (window.onEnterChat) window.onEnterChat();
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 

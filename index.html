@@ -43,6 +43,10 @@
         <span class="icon" aria-hidden="true">🔍</span>
         חיפוש
       </button>
+      <button type="button" class="nav-btn" data-nav="chat">
+        <span class="icon" aria-hidden="true">🤖</span>
+        צ'אט AI
+      </button>
     </nav>
 
     <main class="main">
@@ -253,6 +257,41 @@
         </div>
         <div id="results-list" class="insight-list"></div>
       </section>
+
+      <!-- AI CHAT -->
+      <section class="view" data-view="chat">
+        <div class="card" style="display: flex; flex-direction: column; height: calc(100vh - 250px); min-height: 400px; padding: 0; overflow: hidden;">
+          <div class="chat-header">
+            <h2>צ'אט AI חכם</h2>
+            <div id="ai-status" class="ai-status">
+              <span class="status-indicator"></span>
+              <span id="ai-status-text">טוען מודל Gemma 2 2B...</span>
+            </div>
+          </div>
+          
+          <div class="chat-messages" id="chat-messages">
+            <div class="message ai-message">
+              <div class="msg-content">
+                שלום! אני ה-AI של מאגר התובנות. אני מבוסס על המודל **Gemma 2 2B** שרץ מקומית אצלכם בדפדפן (פרטיות מלאה). 
+                <br><br>
+                אני יכול לעשות חיפוש חכם, לייעץ לפני ראיון, לנתח מגמות או לסכם תובנות מהמאגר.
+                איך אוכל לעזור היום?
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-area">
+            <div class="ai-progress" id="ai-progress" style="display: none;">
+              <div class="progress-bar"><div class="progress-fill" id="ai-progress-fill"></div></div>
+              <span id="ai-progress-text">טוען מודל... (1.5GB)</span>
+            </div>
+            <div class="input-row">
+              <textarea id="chat-input" placeholder="שאל אותי על התובנות במאגר..." rows="1"></textarea>
+              <button type="button" class="btn btn-primary" id="btn-chat-send">🚀</button>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Detail modal -->
@@ -274,6 +313,7 @@
 
     <script src="js/storage.js"></script>
     <script src="js/export.js"></script>
+    <script src="js/chat.js" type="module"></script>
     <script src="js/app.js"></script>
   </body>
 </html>
