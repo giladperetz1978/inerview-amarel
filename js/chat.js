@@ -1,98 +1,123 @@
 ﻿
 import { pipeline, TextStreamer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
 
-const CHAT_INPUT = document.getElementById("chat-input");
-const CHAT_SEND = document.getElementById("btn-chat-send");
-const CHAT_MESSAGES = document.getElementById("chat-messages");
-const AI_STATUS_TEXT = document.getElementById("ai-status-text");
-const AI_STATUS = document.getElementById("ai-status");
-const PROGRESS_WRAP = document.getElementById("ai-progress");
-const PROGRESS_FILL = document.getElementById("ai-progress-fill");
-const PROGRESS_TEXT = document.getElementById("ai-progress-text");
+// Selectors for both View and Widget
+const VIEW_INPUT = document.getElementById("chat-input");
+const VIEW_SEND = document.getElementById("btn-chat-send");
+const VIEW_MESSAGES = document.getElementById("chat-messages");
+
+const WIDGET_INPUT = document.getElementById("widget-chat-input");
+const WIDGET_SEND = document.getElementById("btn-widget-send");
+const WIDGET_MESSAGES = document.getElementById("widget-messages");
+
+const AI_STATUS_TEXT_WIDGET = document.getElementById("ai-widget-status-text");
+const AI_STATUS_WIDGET = document.getElementById("ai-widget-status");
+const PROGRESS_WRAP_WIDGET = document.getElementById("widget-ai-progress");
+const PROGRESS_FILL_WIDGET = document.getElementById("widget-ai-progress-fill");
+const PROGRESS_TEXT_WIDGET = document.getElementById("widget-ai-progress-text");
+
+const FAB = document.getElementById("btn-ai-fab");
+const WIDGET = document.getElementById("ai-chat-widget");
+const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 
 let engine = null;
-// החלפה סופית למודל Qwen 2.5 0.5B - פתוח לחלוטין ללא חסימות גוגל
 const modelId = "onnx-community/Qwen2.5-0.5B-Instruct"; 
+
+// FAB & Widget UI Toggles
+FAB.addEventListener("click", () => {
+    WIDGET.classList.toggle("hidden");
+    if (!WIDGET.classList.contains("hidden")) {
+        initEngine();
+    }
+});
+
+CLOSE_WIDGET.addEventListener("click", () => {
+    WIDGET.classList.add("hidden");
+});
 
 async function initEngine() {
     if (engine) return;
 
     try {
-        AI_STATUS.classList.add("loading");
-        AI_STATUS_TEXT.textContent = "מאתחל מנוע דור חדש (Qwen 2.5)...";
-        PROGRESS_WRAP.style.display = "block";
+        AI_STATUS_WIDGET.classList.add("loading");
+        AI_STATUS_TEXT_WIDGET.textContent = "מאתחל מנוע AI...";
+        PROGRESS_WRAP_WIDGET.style.display = "block";
 
-        console.log("Loading Qwen 2.5...");
-        
-        // טעינת המודל עם הגדרות תואמות CPU/WebGPU
         engine = await pipeline('text-generation', modelId, {
             dtype: 'q4',
-            device: 'webgpu', // ינסה WebGPU ואם ייכשל יעבור ל-CPU לבד
+            device: 'webgpu',
             progress_callback: (item) => {
                 if (item.status === 'progress') {
                     const progress = Math.round(item.progress);
-                    PROGRESS_FILL.style.width = `${progress}%`;
-                    PROGRESS_TEXT.textContent = `טוען רכיב: ${progress}% - ${item.file}`;
+                    PROGRESS_FILL_WIDGET.style.width = `${progress}%`;
+                    PROGRESS_TEXT_WIDGET.textContent = `טוען: ${progress}%`;
                 }
             }
         }).catch(async (err) => {
-            console.warn("Retrying with explicit CPU...");
+            console.warn("Retrying with CPU...");
             return await pipeline('text-generation', modelId, {
                 dtype: 'q4',
                 device: 'cpu',
                 progress_callback: (item) => {
                     if (item.status === 'progress') {
                         const progress = Math.round(item.progress);
-                        PROGRESS_FILL.style.width = `${progress}%`;
-                        PROGRESS_TEXT.textContent = `טוען (CPU): ${progress}% - ${item.file}`;
+                        PROGRESS_FILL_WIDGET.style.width = `${progress}%`;
                     }
                 }
             });
         });
 
-        AI_STATUS.classList.remove("loading");
-        AI_STATUS.classList.add("ready");
-        AI_STATUS_TEXT.textContent = "הצ'אט מוכן לעבודה (V4)";
+        AI_STATUS_WIDGET.classList.remove("loading");
+        AI_STATUS_WIDGET.classList.add("ready");
+        AI_STATUS_TEXT_WIDGET.textContent = "AI מוכן";
         setTimeout(() => {
-            PROGRESS_WRAP.style.display = "none";
-        }, 2000);
+            PROGRESS_WRAP_WIDGET.style.display = "none";
+        }, 1500);
     } catch (err) {
         console.error("AI Init Error:", err);
-        AI_STATUS_TEXT.textContent = "שגיאת טעינה.";
-        PROGRESS_TEXT.textContent = "שגיאה: " + err.message;
-        AI_STATUS.classList.remove("loading");
+        AI_STATUS_WIDGET.classList.remove("loading");
+        AI_STATUS_WIDGET.classList.add("error");
+        AI_STATUS_TEXT_WIDGET.textContent = `שגיאת טעינה: ${err.message.slice(0, 30)}...`;
+        PROGRESS_TEXT_WIDGET.textContent = "נסו לרענן או לבדוק חיבור אינטרנט.";
+        PROGRESS_WRAP_WIDGET.style.display = "block";
     }
 }
 
-function appendMessage(role, text) {
+function appendMessage(role, text, container) {
+    if (!container) return;
     const msgDiv = document.createElement("div");
     msgDiv.className = `message ${role === "user" ? "user-message" : "ai-message"}`;
     const formatted = text.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     msgDiv.innerHTML = `<div class="msg-content">${formatted}</div>`;
-    CHAT_MESSAGES.appendChild(msgDiv);
-    CHAT_MESSAGES.scrollTop = CHAT_MESSAGES.scrollHeight;
+    container.appendChild(msgDiv);
+    container.scrollTop = container.scrollHeight;
     return msgDiv;
 }
 
-async function handleChat() {
-    const query = CHAT_INPUT.value.trim();
+async function handleChat(inputEl, container) {
+    const query = inputEl.value.trim();
     if (!query || !engine) return;
 
-    CHAT_INPUT.value = "";
-    appendMessage("user", query);
+    inputEl.value = "";
+    appendMessage("user", query, container);
 
-    const allInsights = JSON.parse(localStorage.getItem("amarel_insights") || "[]");
+    const allInsights = JSON.parse(localStorage.getItem("amarel_insights_v1") || "[]");
     const contextStr = allInsights.slice(-10).map(ins => 
         `מחלקה: ${ins.department}, משרה: ${ins.jobTitle}, תובנות: ${ins.insights}`
     ).join("\n");
 
     const messages = [
-        { role: "user", content: `Context: ${contextStr}\n\nQuestion: ${query}\n\nAnswer in Hebrew.` }
+        { role: "system", content: "You are a helpful AI assistant for recruiters in Amarel company. Ground your answers in the provided context. Answer in Hebrew and be professional." },
+        { role: "user", content: `הנה כמה תובנות מהמאגר שלנו:\n${contextStr}\n\nשאלה: ${query}\nענה בעברית.` }
     ];
 
+    processAIRequest(messages, container);
+}
+
+async function processAIRequest(messages, container) {
     try {
-        AI_STATUS.classList.add("loading");
-        const aiMsgDiv = appendMessage("ai", "");
+        AI_STATUS_WIDGET.classList.add("loading");
+        const aiMsgDiv = appendMessage("ai", "...", container);
         const msgContent = aiMsgDiv.querySelector(".msg-content");
         let fullRes = "";
         
@@ -101,34 +126,80 @@ async function handleChat() {
             callback_function: (text) => {
                 fullRes += text;
                 msgContent.innerHTML = fullRes.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-                CHAT_MESSAGES.scrollTop = CHAT_MESSAGES.scrollHeight;
+                container.scrollTop = container.scrollHeight;
             }
         });
 
         await engine(messages, {
-            max_new_tokens: 400,
+            max_new_tokens: 500,
             streamer,
-            temperature: 0.7,
+            temperature: 0.6,
             do_sample: true,
         });
 
-        AI_STATUS.classList.remove("loading");
+        AI_STATUS_WIDGET.classList.remove("loading");
     } catch (err) {
         console.error("Chat Error:", err);
-        appendMessage("ai", "שגיאת עיבוד.");
-        AI_STATUS.classList.remove("loading");
+        appendMessage("ai", "שגיאת עיבוד.", container);
+        AI_STATUS_WIDGET.classList.remove("loading");
     }
 }
 
-CHAT_SEND.addEventListener("click", handleChat);
-CHAT_INPUT.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleChat();
-    }
+// Quick Actions Logic
+document.querySelectorAll(".btn-chip").forEach(btn => {
+    btn.addEventListener("click", async () => {
+        const action = btn.dataset.action;
+        if (!engine) return;
+
+        const allInsights = JSON.parse(localStorage.getItem("amarel_insights_v1") || "[]");
+        const contextStr = allInsights.slice(-10).map(ins => 
+            `מחלקה: ${ins.department}, משרה: ${ins.jobTitle}, תובנות: ${ins.insights}`
+        ).join("\n");
+
+        let prompt = "";
+        if (action === "summarize") {
+            prompt = "סכם לי את 10 התובנות האחרונות מהמאגר ב-5 נקודות קצרות.";
+            appendMessage("user", "סכם לי את התובנות האחרונות", WIDGET_MESSAGES);
+        } else if (action === "analyze") {
+            prompt = "מהן המגמות העיקריות שאתה רואה בתובנות האחרונות? האם יש שאלות או נושאים שחוזרים על עצמם?";
+            appendMessage("user", "נתח מגמות במאגר", WIDGET_MESSAGES);
+        } else if (action === "tips") {
+            prompt = "תן לי 3 טיפים חשובים למנהל מגייס שמתכונן לראיון על סמך הידע שלך ועל סמך התובנות במאגר.";
+            appendMessage("user", "טיפים לראיון", WIDGET_MESSAGES);
+        }
+
+        const messages = [
+            { role: "system", content: "You are a professional recruiting assistant." },
+            { role: "user", content: `הקשר:\n${contextStr}\n\nשאלה: ${prompt}\nענה בעברית.` }
+        ];
+
+        processAIRequest(messages, WIDGET_MESSAGES);
+    });
 });
+
+// Event Listeners for Send buttons
+if (WIDGET_SEND) {
+    WIDGET_SEND.addEventListener("click", () => handleChat(WIDGET_INPUT, WIDGET_MESSAGES));
+    WIDGET_INPUT.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleChat(WIDGET_INPUT, WIDGET_MESSAGES);
+        }
+    });
+}
+
+if (VIEW_SEND) {
+    VIEW_SEND.addEventListener("click", () => handleChat(VIEW_INPUT, VIEW_MESSAGES));
+    VIEW_INPUT.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleChat(VIEW_INPUT, VIEW_MESSAGES);
+        }
+    });
+}
 
 export function onEnterChat() {
     initEngine();
 }
 window.onEnterChat = onEnterChat;
+
