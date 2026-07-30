@@ -11,7 +11,7 @@ const PROGRESS_FILL = document.getElementById("ai-progress-fill");
 const PROGRESS_TEXT = document.getElementById("ai-progress-text");
 
 let engine = null;
-const modelId = "Gemma-2-2b-it-q4f16_1-MLC"; // Efficient 4-bit version
+const modelId = "gemma-2-2b-it-q4f16_1-MLC"; // Exact ID for WebLLM prebuilt list
 const chatConfig = {
     temperature: 0.7,
     top_p: 0.95,
