@@ -35,7 +35,7 @@ const AI_CONFIG = {
     gemini: {
         baseUrl: "https://generativelanguage.googleapis.com/v1beta",
         model: "gemini-1.5-flash",
-        apiKey: "AI_GEMINI_KEY_PLACEHOLDER"
+        apiKey: "AI_GEMINI_KEY_PLACEHOLDER" || ""
     },
     local: {
         baseUrl: "http://localhost:8000/v1",
