@@ -43,6 +43,10 @@
         <span class="icon" aria-hidden="true">🔍</span>
         חיפוש
       </button>
+      <button type="button" class="nav-btn" data-nav="chat">
+        <span class="icon" aria-hidden="true">🤖</span>
+        צ'אט AI
+      </button>
     </nav>
 
     <main class="main">
@@ -253,7 +257,73 @@
         </div>
         <div id="results-list" class="insight-list"></div>
       </section>
+
+      <!-- AI CHAT VIEW (kept for navigation but will be enhanced) -->
+      <section class="view" data-view="chat">
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages">
+            <div class="message ai-message">
+              שלום! אני עוזר ה-AI שלך. שאל אותי כל דבר לגבי התובנות במאגר.
+            </div>
+          </div>
+          <div class="chat-footer">
+            <div class="input-row">
+              <textarea id="chat-input" placeholder="שאל אותי על התובנות..." rows="1"></textarea>
+              <button type="button" id="btn-chat-send" class="btn-send" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">🚀</button>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <!-- Floating AI Assistant Button (from smart-data-extractor) -->
+    <div id="ai-fab-container" class="ai-fab-container no-print">
+      <button type="button" id="btn-ai-fab" class="ai-fab" aria-label="פתח עוזר AI">
+        <span class="icon">🤖</span>
+      </button>
+      
+      <div id="ai-chat-widget" class="ai-chat-widget hidden">
+        <div class="chat-card">
+          <div class="chat-header">
+            <div class="chat-title">
+              <span class="icon">🤖</span>
+              <strong>עוזר AI מקומי</strong>
+            </div>
+            <button type="button" id="btn-close-chat" class="btn-icon">✕</button>
+          </div>
+          
+          <div class="chat-status-bar">
+            <div id="ai-widget-status" class="ai-status">
+              <span class="status-indicator"></span>
+              <span id="ai-widget-status-text">טוען מודל...</span>
+            </div>
+          </div>
+
+          <div class="chat-quick-actions">
+            <button type="button" class="btn-chip" data-action="summarize">📋 סיכום תובנות</button>
+            <button type="button" class="btn-chip" data-action="analyze">📊 ניתוח מגמות</button>
+            <button type="button" class="btn-chip" data-action="tips">💡 טיפים לראיון</button>
+          </div>
+
+          <div class="chat-messages" id="widget-messages">
+            <div class="message ai-message">
+              שלום! אני העוזר המקומי שלך. אני מכיר את כל התובנות ששמרת במאגר ויכול לעזור לך לסכם אותן או להתכונן לראיון הבא.
+            </div>
+          </div>
+
+          <div class="chat-footer">
+            <div class="ai-progress" id="widget-ai-progress" style="display: none;">
+              <div class="progress-bar"><div class="progress-fill" id="widget-ai-progress-fill"></div></div>
+              <span id="widget-ai-progress-text">טוען מודל...</span>
+            </div>
+            <div class="input-row">
+              <textarea id="widget-chat-input" placeholder="שאל אותי על התובנות..." rows="1"></textarea>
+              <button type="button" id="btn-widget-send" class="btn-send">🚀</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Detail modal -->
     <div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -274,6 +344,7 @@
 
     <script src="js/storage.js"></script>
     <script src="js/export.js"></script>
+    <script src="js/chat.js?v=10" type="module"></script>
     <script src="js/app.js"></script>
   </body>
 </html>
