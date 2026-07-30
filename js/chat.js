@@ -1,5 +1,5 @@
 ﻿
-import { pipeline, TextStreamer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
+import { pipeline, TextStreamer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0/dist/transformers.min.js";
 
 // Selectors for both View and Widget
 const VIEW_INPUT = document.getElementById("chat-input");
@@ -46,12 +46,20 @@ const AI_CONFIG = {
 let currentMode = "gemini"; // Default to Gemini as requested
 
 // FAB & Widget UI Toggles
-FAB.addEventListener("click", () => {
-    WIDGET.classList.toggle("hidden");
-    if (!WIDGET.classList.contains("hidden")) {
-        checkServerHealth();
-    }
-});
+if (FAB) {
+    FAB.addEventListener("click", () => {
+        WIDGET.classList.toggle("hidden");
+        if (!WIDGET.classList.contains("hidden")) {
+            checkServerHealth();
+        }
+    });
+}
+
+if (CLOSE_WIDGET) {
+    CLOSE_WIDGET.addEventListener("click", () => {
+        WIDGET.classList.add("hidden");
+    });
+}
 
 async function checkServerHealth() {
     AI_STATUS_WIDGET.classList.add("loading");

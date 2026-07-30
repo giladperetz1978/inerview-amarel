@@ -260,7 +260,19 @@
 
       <!-- AI CHAT VIEW (kept for navigation but will be enhanced) -->
       <section class="view" data-view="chat">
-        <div id="chat-widget-container"></div>
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages">
+            <div class="message ai-message">
+              שלום! אני עוזר ה-AI שלך. שאל אותי כל דבר לגבי התובנות במאגר.
+            </div>
+          </div>
+          <div class="chat-footer">
+            <div class="input-row">
+              <textarea id="chat-input" placeholder="שאל אותי על התובנות..." rows="1"></textarea>
+              <button type="button" id="btn-chat-send" class="btn-send" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">🚀</button>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
 
