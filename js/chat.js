@@ -182,11 +182,16 @@ async function processRemoteAIRequest(messages, container) {
             };
         }
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 seconds timeout
+
         const response = await fetch(url, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -216,8 +221,15 @@ async function processRemoteAIRequest(messages, container) {
         AI_STATUS_WIDGET.classList.add("ready");
     } catch (err) {
         console.error("AI Error:", err);
+        let errorMsg = err.message;
+        if (err.name === 'AbortError') {
+            errorMsg = "הבקשה לקחה יותר מדי זמן (Timeout). וודא ש-LocalAI מגיב.";
+        } else if (err.message.includes("Failed to fetch")) {
+            errorMsg = "שגיאת חיבור. אם אתה בטלפון, וודא שאתה גולש מאותו מכשיר שבו רץ השרת, או בדוק חסימת Mixed Content (HTTPS -> HTTP).";
+        }
+        
         const keyStart = activeApiKey.substring(0, 4);
-        msgContent.innerHTML = `שגיאה בתקשורת: ${err.message}<br><small style="opacity:0.5">KeyDebug: ${keyStart}... (Len: ${activeApiKey.length})</small>`;
+        msgContent.innerHTML = `שגיאה: ${errorMsg}<br><small style="opacity:0.5">KeyDebug: ${keyStart}... (Len: ${activeApiKey.length})</small>`;
         AI_STATUS_WIDGET.classList.remove("loading");
         AI_STATUS_WIDGET.classList.add("error");
     }
