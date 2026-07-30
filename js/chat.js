@@ -25,7 +25,7 @@ const AI_CONFIG = {
     cloud: {
         baseUrl: "https://api.moonshot.ai/v1",
         model: "kimi-k2.5",
-        apiKey: localStorage.getItem("AI_CLOUD_KEY") || "" 
+        apiKey: process.env.AI_CLOUD_KEY || localStorage.getItem("AI_CLOUD_KEY") || "" 
     },
     openrouter: {
         baseUrl: "https://openrouter.ai/api/v1",
@@ -35,7 +35,7 @@ const AI_CONFIG = {
     gemini: {
         baseUrl: "https://generativelanguage.googleapis.com/v1beta",
         model: "gemini-1.5-flash",
-        apiKey: localStorage.getItem("AI_GEMINI_KEY") || "" 
+        apiKey: process.env.AI_GEMINI_KEY || localStorage.getItem("AI_GEMINI_KEY") || "" 
     },
     local: {
         baseUrl: "http://localhost:8000/v1",
