@@ -11,7 +11,7 @@ const PROGRESS_FILL = document.getElementById("ai-progress-fill");
 const PROGRESS_TEXT = document.getElementById("ai-progress-text");
 
 let engine = null;
-const modelId = "gemma-2-2b-it-q4f16_1-MLC"; // Exact ID for WebLLM prebuilt list
+const modelId = "gemma-2b-it-q4f16_1-MLC"; // Verified ID for WebLLM prebuilt list
 const chatConfig = {
     temperature: 0.7,
     top_p: 0.95,
@@ -25,9 +25,12 @@ async function initEngine() {
         AI_STATUS_TEXT.textContent = "מאתחל מנוע AI (מצב CPU - איטי יותר)...";
         PROGRESS_WRAP.style.display = "block";
 
-        // Force Webllm to use WASM/CPU if WebGPU is not available or explicitly preferred
+        // Create engine with explicitly specified WASM/CPU fallback if possible
+        // Note: WebLLM 0.2.84 automatically handles device selection, 
+        // but we ensure the progress callback is set to see where it hangs.
         engine = await webllm.CreateMLCEngine(modelId, {
             initProgressCallback: (report) => {
+                console.log("WebLLM Progress:", report);
                 const progress = Math.round(report.progress * 100);
                 PROGRESS_FILL.style.width = `${progress}%`;
                 PROGRESS_TEXT.textContent = `טוען: ${progress}% - ${report.text}`;
@@ -42,7 +45,7 @@ async function initEngine() {
         AI_STATUS_TEXT.textContent = "המודל מוכן מקומית (CPU Mode)";
     } catch (err) {
         console.error("AI Init Error:", err);
-        AI_STATUS_TEXT.textContent = "שגיאת טעינה. ייתכן מחסור בזיכרון RAM.";
+        AI_STATUS_TEXT.textContent = "שגיאת טעינה. נסה לרענן או לבדוק WebGPU.";
         PROGRESS_TEXT.textContent = "שגיאה: " + err.message;
         AI_STATUS.classList.remove("loading");
     }
