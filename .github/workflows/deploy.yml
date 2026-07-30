@@ -14,8 +14,8 @@ jobs:
 
       - name: Inject API Keys
         run: |
-          sed -i "s/process.env.AI_GEMINI_KEY/\"${{ secrets.AI_GEMINI_KEY }}\"/g" js/chat.js
-          sed -i "s/process.env.AI_CLOUD_KEY/\"${{ secrets.AI_CLOUD_KEY }}\"/g" js/chat.js
+          sed -i "s/AI_GEMINI_KEY_PLACEHOLDER/${{ secrets.AI_GEMINI_KEY }}/g" js/chat.js
+          sed -i "s/AI_CLOUD_KEY_PLACEHOLDER/${{ secrets.AI_CLOUD_KEY }}/g" js/chat.js
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
