@@ -216,7 +216,8 @@ async function processRemoteAIRequest(messages, container) {
         AI_STATUS_WIDGET.classList.add("ready");
     } catch (err) {
         console.error("AI Error:", err);
-        msgContent.innerHTML = `שגיאה בתקשורת (${currentMode === "local" ? "שרת מקומי" : "ענן"}): ${err.message}`;
+        const keyStart = activeApiKey.substring(0, 4);
+        msgContent.innerHTML = `שגיאה בתקשורת: ${err.message}<br><small style="opacity:0.5">KeyDebug: ${keyStart}... (Len: ${activeApiKey.length})</small>`;
         AI_STATUS_WIDGET.classList.remove("loading");
         AI_STATUS_WIDGET.classList.add("error");
     }
