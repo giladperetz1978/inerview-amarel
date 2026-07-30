@@ -24,7 +24,7 @@ const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 const AI_CONFIG = {
     cloud: {
         baseUrl: "https://api.aionlabs.ai/v1",
-        model: "aion-1.0",
+        model: "aion-labs/aion-3.0",
         apiKey: "AI_CLOUD_KEY_PLACEHOLDER"
     },
     openrouter: {
@@ -130,11 +130,13 @@ async function processRemoteAIRequest(messages, container) {
     const config = AI_CONFIG[currentMode];
     let url, body, headers;
 
+    // Clean API Key from possible injection artifacts (quotes/whitespace)
+    const activeApiKey = config.apiKey ? config.apiKey.trim().replace(/^['"]|['"]$/g, '') : "";
+
     try {
         if (currentMode === "gemini") {
             // Google Gemini Format
-            const apiKey = config.apiKey.trim().replace(/^['"]|['"]$/g, '');
-            url = `${config.baseUrl}/models/${config.model}:generateContent?key=${apiKey}`;
+            url = `${config.baseUrl}/models/${config.model}:generateContent?key=${activeApiKey}`;
             headers = { 'Content-Type': 'application/json' };
             
             const systemMsg = messages.find(m => m.role === "system")?.content || "";
@@ -155,8 +157,8 @@ async function processRemoteAIRequest(messages, container) {
             // OpenAI Compatible Format (Moonshot, OpenRouter, Local)
             url = `${config.baseUrl}/chat/completions`;
             headers = { 'Content-Type': 'application/json' };
-            if (config.apiKey) {
-                headers['Authorization'] = `Bearer ${config.apiKey}`;
+            if (activeApiKey) {
+                headers['Authorization'] = `Bearer ${activeApiKey}`;
             }
             body = {
                 model: config.model,
