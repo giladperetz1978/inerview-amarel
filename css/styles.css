@@ -21,6 +21,18 @@
   font-family: "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
+.version-tag {
+  position: fixed;
+  top: 2px;
+  right: 5px;
+  font-size: 0.6rem;
+  color: var(--muted);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1000;
+  font-weight: bold;
+}
+
 *,
 *::before,
 *::after {
