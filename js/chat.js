@@ -23,8 +23,8 @@ const CLOSE_WIDGET = document.getElementById("btn-close-chat");
 // AI Configuration 
 const AI_CONFIG = {
     cloud: {
-        baseUrl: "https://api.moonshot.ai/v1",
-        model: "kimi-k2.5",
+        baseUrl: "https://api.aionresearch.io/v1",
+        model: "aion-1.0",
         apiKey: "AI_CLOUD_KEY_PLACEHOLDER"
     },
     openrouter: {
@@ -43,7 +43,7 @@ const AI_CONFIG = {
     }
 };
 
-let currentMode = "gemini"; // Default to Gemini as requested
+let currentMode = "cloud"; // Default to AION Cloud as requested
 
 // FAB & Widget UI Toggles
 if (FAB) {
@@ -84,11 +84,11 @@ async function checkServerHealth() {
         // Local failed
     }
 
-    // Default to Gemini as the main cloud provider
-    currentMode = "gemini";
+    // Default to AION Cloud provider
+    currentMode = "cloud";
     AI_STATUS_WIDGET.classList.remove("loading");
     AI_STATUS_WIDGET.classList.add("ready");
-    AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (Gemini)";
+    AI_STATUS_TEXT_WIDGET.textContent = "מחובר לענן (AION)";
 }
 
 function appendMessage(role, text, container) {
