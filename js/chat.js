@@ -22,9 +22,10 @@ async function initEngine() {
 
     try {
         AI_STATUS.classList.add("loading");
-        AI_STATUS_TEXT.textContent = "מאתחל מנוע AI (דורש WebGPU)...";
+        AI_STATUS_TEXT.textContent = "מאתחל מנוע AI (מצב CPU - איטי יותר)...";
         PROGRESS_WRAP.style.display = "block";
 
+        // Force Webllm to use WASM/CPU if WebGPU is not available or explicitly preferred
         engine = await webllm.CreateMLCEngine(modelId, {
             initProgressCallback: (report) => {
                 const progress = Math.round(report.progress * 100);
@@ -38,11 +39,11 @@ async function initEngine() {
 
         AI_STATUS.classList.remove("loading");
         AI_STATUS.classList.add("ready");
-        AI_STATUS_TEXT.textContent = "המודל מוכן מקומית (Gemma-2-2B)";
+        AI_STATUS_TEXT.textContent = "המודל מוכן מקומית (CPU Mode)";
     } catch (err) {
         console.error("AI Init Error:", err);
-        AI_STATUS_TEXT.textContent = "שגיאה. וודא ש-WebGPU מאופשר בדפדפן (Flag).";
-        PROGRESS_TEXT.textContent = "שגיאת טעינה: " + err.message;
+        AI_STATUS_TEXT.textContent = "שגיאת טעינה. ייתכן מחסור בזיכרון RAM.";
+        PROGRESS_TEXT.textContent = "שגיאה: " + err.message;
         AI_STATUS.classList.remove("loading");
     }
 }
