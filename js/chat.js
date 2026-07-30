@@ -135,6 +135,11 @@ async function processRemoteAIRequest(messages, container) {
 
     // Clean API Key from possible injection artifacts (quotes/whitespace)
     const activeApiKey = config.apiKey ? config.apiKey.trim().replace(/^['"]|['"]$/g, '') : "";
+    
+    // DEBUG: Logs key length and start/end to identify injection issues
+    if (activeApiKey) {
+        console.log(`Debug: Key length=${activeApiKey.length}, startsWith=${activeApiKey.substring(0,3)}, endsWith=${activeApiKey.slice(-3)}`);
+    }
 
     try {
         if (currentMode === "gemini") {
