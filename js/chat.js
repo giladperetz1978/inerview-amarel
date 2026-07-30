@@ -133,12 +133,15 @@ async function processRemoteAIRequest(messages, container) {
     const config = AI_CONFIG[currentMode];
     let url, body, headers;
 
-    // Clean API Key from possible injection artifacts (quotes/whitespace)
-    const activeApiKey = config.apiKey ? config.apiKey.trim().replace(/^['"]|['"]$/g, '') : "";
+    // Use placeholder directly if deployment didn't replace it (local testing)
+    let rawKey = config.apiKey;
+    const activeApiKey = rawKey.trim().replace(/^['"]|['"]$/g, '');
     
-    // DEBUG: Logs key length and start/end to identify injection issues
-    if (activeApiKey) {
-        console.log(`Debug: Key length=${activeApiKey.length}, startsWith=${activeApiKey.substring(0,3)}, endsWith=${activeApiKey.slice(-3)}`);
+    // DEBUG: Logs key status to Console
+    if (activeApiKey === "alv2_y3s3anuVjAxr-JOynSz1QyCPthA6Kz9Jff9Hm8rTz9E") {
+        console.warn("DEBUG: alv2_y3s3anuVjAxr-JOynSz1QyCPthA6Kz9Jff9Hm8rTz9E was not replaced during deployment!");
+    } else {
+        console.log(`DEBUG: Key looks valid (Length: ${activeApiKey.length})`);
     }
 
     try {
