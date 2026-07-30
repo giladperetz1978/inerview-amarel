@@ -11,7 +11,7 @@ const PROGRESS_FILL = document.getElementById("ai-progress-fill");
 const PROGRESS_TEXT = document.getElementById("ai-progress-text");
 
 let engine = null;
-// החלפה למודל Qwen 2.5 0.5B - מודל בקוד פתוח מלא, ללא צורך באישור, שעובד מצוין ב-WASM/CPU
+// החלפה סופית למודל Qwen 2.5 0.5B - פתוח לחלוטין ללא חסימות גוגל
 const modelId = "onnx-community/Qwen2.5-0.5B-Instruct"; 
 
 async function initEngine() {
@@ -19,25 +19,25 @@ async function initEngine() {
 
     try {
         AI_STATUS.classList.add("loading");
-        AI_STATUS_TEXT.textContent = "מאתחל מנוע (Qwen 2.5 - Open Source)...";
+        AI_STATUS_TEXT.textContent = "מאתחל מנוע דור חדש (Qwen 2.5)...";
         PROGRESS_WRAP.style.display = "block";
 
-        try {
-            engine = await pipeline('text-generation', modelId, {
-                dtype: 'q4',
-                device: 'webgpu',
-                progress_callback: (item) => {
-                    if (item.status === 'progress') {
-                        const progress = Math.round(item.progress);
-                        PROGRESS_FILL.style.width = `${progress}%`;
-                        PROGRESS_TEXT.textContent = `טוען: ${progress}% - ${item.file}`;
-                    }
+        console.log("Loading Qwen 2.5...");
+        
+        // טעינת המודל עם הגדרות תואמות CPU/WebGPU
+        engine = await pipeline('text-generation', modelId, {
+            dtype: 'q4',
+            device: 'webgpu', // ינסה WebGPU ואם ייכשל יעבור ל-CPU לבד
+            progress_callback: (item) => {
+                if (item.status === 'progress') {
+                    const progress = Math.round(item.progress);
+                    PROGRESS_FILL.style.width = `${progress}%`;
+                    PROGRESS_TEXT.textContent = `טוען רכיב: ${progress}% - ${item.file}`;
                 }
-            });
-        } catch (gpuErr) {
-            console.warn("WebGPU failed, falling back to CPU:", gpuErr);
-            AI_STATUS_TEXT.textContent = "עובר למצב CPU (תאימות מלאה)...";
-            engine = await pipeline('text-generation', modelId, {
+            }
+        }).catch(async (err) => {
+            console.warn("Retrying with explicit CPU...");
+            return await pipeline('text-generation', modelId, {
                 dtype: 'q4',
                 device: 'cpu',
                 progress_callback: (item) => {
@@ -48,17 +48,17 @@ async function initEngine() {
                     }
                 }
             });
-        }
+        });
 
         AI_STATUS.classList.remove("loading");
         AI_STATUS.classList.add("ready");
-        AI_STATUS_TEXT.textContent = "המודל מוכן לשימוש (Offline)";
+        AI_STATUS_TEXT.textContent = "הצ'אט מוכן לעבודה (V4)";
         setTimeout(() => {
             PROGRESS_WRAP.style.display = "none";
         }, 2000);
     } catch (err) {
         console.error("AI Init Error:", err);
-        AI_STATUS_TEXT.textContent = "שגיאת טעינה. נסה שוב.";
+        AI_STATUS_TEXT.textContent = "שגיאת טעינה.";
         PROGRESS_TEXT.textContent = "שגיאה: " + err.message;
         AI_STATUS.classList.remove("loading");
     }
@@ -87,7 +87,7 @@ async function handleChat() {
     ).join("\n");
 
     const messages = [
-        { role: "user", content: `You are an AI for Amarel recruiters. Context: ${contextStr}\n\nQuestion: ${query}\n\nAnswer in Hebrew.` }
+        { role: "user", content: `Context: ${contextStr}\n\nQuestion: ${query}\n\nAnswer in Hebrew.` }
     ];
 
     try {
@@ -106,7 +106,7 @@ async function handleChat() {
         });
 
         await engine(messages, {
-            max_new_tokens: 500,
+            max_new_tokens: 400,
             streamer,
             temperature: 0.7,
             do_sample: true,
@@ -115,7 +115,7 @@ async function handleChat() {
         AI_STATUS.classList.remove("loading");
     } catch (err) {
         console.error("Chat Error:", err);
-        appendMessage("ai", "שגיאה בעיבוד.");
+        appendMessage("ai", "שגיאת עיבוד.");
         AI_STATUS.classList.remove("loading");
     }
 }
