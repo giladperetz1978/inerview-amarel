@@ -18,14 +18,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Inject API Keys
-        shell: bash
+        env:
+          AION_KEY: ${{ secrets.AI_CLOUD_KEY }}
+          GEMINI_KEY: ${{ secrets.AI_GEMINI_KEY }}
         run: |
-          KEY_VAL="${{ secrets.AI_CLOUD_KEY }}"
-          echo "Processing AI_CLOUD_KEY..."
-          sed -i "s/AI_CLOUD_KEY_PLACEHOLDER/$KEY_VAL/g" js/chat.js
-          
-          GEM_VAL="${{ secrets.AI_GEMINI_KEY }}"
-          sed -i "s/AI_GEMINI_KEY_PLACEHOLDER/$GEM_VAL/g" js/chat.js
+          echo "Injecting keys using environment variables..."
+          sed -i "s|AI_CLOUD_KEY_PLACEHOLDER|${AION_KEY}|g" js/chat.js
+          sed -i "s|AI_GEMINI_KEY_PLACEHOLDER|${GEMINI_KEY}|g" js/chat.js
+          echo "Injection step complete."
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
