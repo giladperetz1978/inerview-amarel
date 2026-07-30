@@ -1,5 +1,5 @@
-
-import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+﻿
+import { pipeline, TextStreamer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
 
 const CHAT_INPUT = document.getElementById("chat-input");
 const CHAT_SEND = document.getElementById("btn-chat-send");
@@ -11,41 +11,38 @@ const PROGRESS_FILL = document.getElementById("ai-progress-fill");
 const PROGRESS_TEXT = document.getElementById("ai-progress-text");
 
 let engine = null;
-const modelId = "gemma-2b-it-q4f16_1-MLC"; // Verified ID for WebLLM prebuilt list
-const chatConfig = {
-    temperature: 0.7,
-    top_p: 0.95,
-};
+// מודל Gemma 2 2B מותאם ל-Transformers.js (Quantized)
+const modelId = "onnx-community/gemma-2-2b-it-ONNX"; 
 
 async function initEngine() {
     if (engine) return;
 
     try {
         AI_STATUS.classList.add("loading");
-        AI_STATUS_TEXT.textContent = "מאתחל מנוע AI (מצב CPU - איטי יותר)...";
+        AI_STATUS_TEXT.textContent = "מאתחל את Gemma 2 2B (הורדה ראשונית גדולה)...";
         PROGRESS_WRAP.style.display = "block";
 
-        // Create engine with explicitly specified WASM/CPU fallback if possible
-        // Note: WebLLM 0.2.84 automatically handles device selection, 
-        // but we ensure the progress callback is set to see where it hangs.
-        engine = await webllm.CreateMLCEngine(modelId, {
-            initProgressCallback: (report) => {
-                console.log("WebLLM Progress:", report);
-                const progress = Math.round(report.progress * 100);
-                PROGRESS_FILL.style.width = `${progress}%`;
-                PROGRESS_TEXT.textContent = `טוען: ${progress}% - ${report.text}`;
-                if (progress >= 100) {
-                    setTimeout(() => PROGRESS_WRAP.style.display = "none", 1000);
+        engine = await pipeline('text-generation', modelId, {
+            dtype: 'q4', // 4-bit quantization לחיסכון במקום וזיכרון
+            device: 'webgpu', // ינסה GPU, אם לא יצליח יעבור אוטומטית ל-CPU
+            progress_callback: (item) => {
+                if (item.status === 'progress') {
+                    const progress = Math.round(item.progress);
+                    PROGRESS_FILL.style.width = `${progress}%`;
+                    PROGRESS_TEXT.textContent = `מוריד רכיב: ${progress}% - ${item.file} (נפח כולל ~1.4GB)`;
                 }
             }
         });
 
         AI_STATUS.classList.remove("loading");
         AI_STATUS.classList.add("ready");
-        AI_STATUS_TEXT.textContent = "המודל מוכן מקומית (CPU Mode)";
+        AI_STATUS_TEXT.textContent = "Gemma 2 2B מוכן מקומית";
+        setTimeout(() => {
+            PROGRESS_WRAP.style.display = "none";
+        }, 2000);
     } catch (err) {
         console.error("AI Init Error:", err);
-        AI_STATUS_TEXT.textContent = "שגיאת טעינה. נסה לרענן או לבדוק WebGPU.";
+        AI_STATUS_TEXT.textContent = "שגיאה בטעינת Gemma. המכשיר כנראה חלש מדי.";
         PROGRESS_TEXT.textContent = "שגיאה: " + err.message;
         AI_STATUS.classList.remove("loading");
     }
@@ -54,13 +51,11 @@ async function initEngine() {
 function appendMessage(role, text) {
     const msgDiv = document.createElement("div");
     msgDiv.className = `message ${role === "user" ? "user-message" : "ai-message"}`;
-    
-    // Simple markdown-like replacement for line breaks and bold
     const formatted = text.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    
     msgDiv.innerHTML = `<div class="msg-content">${formatted}</div>`;
     CHAT_MESSAGES.appendChild(msgDiv);
     CHAT_MESSAGES.scrollTop = CHAT_MESSAGES.scrollHeight;
+    return msgDiv;
 }
 
 async function handleChat() {
@@ -70,57 +65,50 @@ async function handleChat() {
     CHAT_INPUT.value = "";
     appendMessage("user", query);
 
-    // Prepare context from storage
     const allInsights = JSON.parse(localStorage.getItem("amarel_insights") || "[]");
-    const contextStr = allInsights.map(ins => 
-        `מחלקה: ${ins.department}, משרה: ${ins.jobTitle}, מרואיין: ${ins.intervieweeName}, תובנות: ${ins.insights}, סיטואציות: ${ins.situations}`
-    ).join("\n---\n");
+    const contextStr = allInsights.slice(-10).map(ins => 
+        `מחלקה: ${ins.department}, משרה: ${ins.jobTitle}, תובנות: ${ins.insights}`
+    ).join("\n");
 
-    const systemPrompt = `You are a helpful AI assistant for Amarel hiring managers. 
-You have access to a database of interview insights.
-Language: Hebrew.
-Current Date: ${new Date().toLocaleDateString('he-IL')}.
-
-Database Content:
+    const systemPrompt = `You are an AI assistant for Amarel recruitment.
+Analyze based on these interview insights:
 ${contextStr}
-
-Analyze the query based on this data. If the user asks for a summary, explain the main points. If they ask for advice, use the patterns from the database.
-Always answer in Hebrew.`;
+Answer in Hebrew.`;
 
     const messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: query }
+        { role: "user", content: `${systemPrompt}\n\nQuestion: ${query}` }
     ];
 
     try {
         AI_STATUS.classList.add("loading");
-        AI_STATUS_TEXT.textContent = "ה-AI חושב...";
+        AI_STATUS_TEXT.textContent = "Gemma חושבת...";
 
-        const chunks = await engine.chat.completions.create({
-            messages,
-            stream: true
+        const aiMsgDiv = appendMessage("ai", "");
+        const msgContent = aiMsgDiv.querySelector(".msg-content");
+        let fullRes = "";
+        
+        const streamer = new TextStreamer(engine.tokenizer, {
+            skip_prompt: true,
+            callback_function: (text) => {
+                fullRes += text;
+                msgContent.innerHTML = fullRes.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+                CHAT_MESSAGES.scrollTop = CHAT_MESSAGES.scrollHeight;
+            }
         });
 
-        const aiMsgDiv = document.createElement("div");
-        aiMsgDiv.className = "message ai-message";
-        const msgContent = document.createElement("div");
-        msgContent.className = "msg-content";
-        aiMsgDiv.appendChild(msgContent);
-        CHAT_MESSAGES.appendChild(aiMsgDiv);
-
-        let fullRes = "";
-        for await (const chunk of chunks) {
-            const content = chunk.choices[0]?.delta?.content || "";
-            fullRes += content;
-            msgContent.innerHTML = fullRes.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-            CHAT_MESSAGES.scrollTop = CHAT_MESSAGES.scrollHeight;
-        }
+        await engine(messages, {
+            max_new_tokens: 500,
+            streamer,
+            temperature: 0.6,
+            do_sample: true,
+        });
 
         AI_STATUS.classList.remove("loading");
-        AI_STATUS_TEXT.textContent = "המודל מוכן (Gemma-2-2B)";
+        AI_STATUS_TEXT.textContent = "מוכן";
     } catch (err) {
         console.error("Chat Error:", err);
-        appendMessage("ai", "מצטער, קרתה שגיאה בזמן העיבוד. נסה שוב.");
+        appendMessage("ai", "שגיאה בעיבוד. ייתכן שחסר זיכרון (RAM) במכשיר.");
+        AI_STATUS.classList.remove("loading");
     }
 }
 
@@ -132,10 +120,8 @@ CHAT_INPUT.addEventListener("keydown", (e) => {
     }
 });
 
-// Lazy load engine when user navigates to chat
 export function onEnterChat() {
     initEngine();
 }
 
-// Exporting to global scope for the simple view switcher in app.js
 window.onEnterChat = onEnterChat;
