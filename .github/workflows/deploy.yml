@@ -38,3 +38,5 @@ jobs:
         with:
           folder: .
           branch: gh-pages
+          clean: true
+          force: true
