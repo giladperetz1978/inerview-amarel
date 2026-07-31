@@ -20,7 +20,6 @@
     <link rel="stylesheet" href="css/styles.css?v=4" />
   </head>
   <body>
-    <div class="version-tag" style="background: #333 !important; color: #00ff00 !important; padding: 5px !important; display: block !important;">gilad v16 (Timeout & Debug)</div>
     <header class="app-header">
       <div class="brand">
         <h1>מאגר ותובנות ראיונות באמרל</h1>
@@ -259,25 +258,43 @@
         <div id="results-list" class="insight-list"></div>
       </section>
 
-      <!-- AI CHAT VIEW (kept for navigation but will be enhanced) -->
+      <!-- AI CHAT VIEW -->
       <section class="view" data-view="chat">
-        <div class="chat-container">
-          <div class="chat-messages" id="chat-messages">
+        <div class="chat-container card" style="padding:0; overflow:hidden;">
+          <div class="chat-header" style="background: #fff; padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;">
+            <div class="chat-title">
+              <span class="icon" style="font-size:1.4rem;">🤖</span>
+              <div>
+                <strong id="ai-view-title" style="display:block;">עוזר AI מקומי</strong>
+                <span id="ai-view-status-text" class="hint" style="font-size:0.75rem; margin:0; color:var(--success);">מנוע חכם מקומי (פעיל)</span>
+              </div>
+            </div>
+            <button type="button" id="btn-open-ai-settings-view" class="btn-icon" title="הגדרות AI" style="font-size:1.2rem;">⚙️</button>
+          </div>
+
+          <div class="chat-quick-actions" style="padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--line); background: #fafbfc;">
+            <button type="button" class="btn-chip" data-action="summarize">📋 סיכום תובנות</button>
+            <button type="button" class="btn-chip" data-action="analyze">📊 ניתוח מגמות</button>
+            <button type="button" class="btn-chip" data-action="tips">💡 טיפים לראיון</button>
+          </div>
+
+          <div class="chat-messages" id="chat-messages" style="min-height: 340px;">
             <div class="message ai-message">
-              שלום! אני עוזר ה-AI שלך. שאל אותי כל דבר לגבי התובנות במאגר.
+              שלום! אני עוזר ה-AI שלך. אני ניגש למאגר התובנות והראיונות השמורים במערכת ויכול לספק סיכומים, ניתוחי מגמות ותשובות לשאלות שלך בעברית.
             </div>
           </div>
-          <div class="chat-footer">
+
+          <div class="chat-footer" style="padding:12px; border-top: 1px solid var(--line); background:#fff;">
             <div class="input-row">
-              <textarea id="chat-input" placeholder="שאל אותי על התובנות..." rows="1"></textarea>
-              <button type="button" id="btn-chat-send" class="btn-send" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">🚀</button>
+              <textarea id="chat-input" placeholder="שאל אותי על התובנות במאגר..." rows="1"></textarea>
+              <button type="button" id="btn-chat-send" class="btn-send">🚀</button>
             </div>
           </div>
         </div>
       </section>
     </main>
 
-    <!-- Floating AI Assistant Button (from smart-data-extractor) -->
+    <!-- Floating AI Assistant Button -->
     <div id="ai-fab-container" class="ai-fab-container no-print">
       <button type="button" id="btn-ai-fab" class="ai-fab" aria-label="פתח עוזר AI">
         <span class="icon">🤖</span>
@@ -290,13 +307,16 @@
               <span class="icon">🤖</span>
               <strong id="ai-widget-title">עוזר AI</strong>
             </div>
-            <button type="button" id="btn-close-chat" class="btn-icon">✕</button>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <button type="button" id="btn-open-ai-settings-widget" class="btn-icon" title="הגדרות AI">⚙️</button>
+              <button type="button" id="btn-close-chat" class="btn-icon" title="סגירה">✕</button>
+            </div>
           </div>
           
           <div class="chat-status-bar">
-            <div id="ai-widget-status" class="ai-status">
+            <div id="ai-widget-status" class="ai-status ready">
               <span class="status-indicator"></span>
-              <span id="ai-widget-status-text">טוען מודל...</span>
+              <span id="ai-widget-status-text">מנוע חכם מקומי פעיל</span>
             </div>
           </div>
 
@@ -326,6 +346,43 @@
       </div>
     </div>
 
+    <!-- AI Settings Modal -->
+    <div class="modal-backdrop" id="ai-settings-modal" role="dialog" aria-modal="true" aria-labelledby="ai-settings-title">
+      <div class="modal">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <strong id="ai-settings-title">⚙️ הגדרות מנוע AI</strong>
+          <button type="button" class="btn btn-outline" id="ai-settings-close" aria-label="סגירה">✕</button>
+        </div>
+        
+        <div class="field">
+          <label for="ai-provider-select">בחירת מנוע AI</label>
+          <select id="ai-provider-select">
+            <option value="smart_local">מנוע מקומי חכם (ללא שרת / ללא מפתח API)</option>
+            <option value="gemini">Google Gemini API</option>
+            <option value="openai">OpenAI / OpenRouter API</option>
+            <option value="custom_local">שרת מקומי (Ollama / LocalAI)</option>
+          </select>
+          <span class="help">המנוע המקומי החכם פועל ישירות בדפדפן ומנתח את הנתונים ללא חיבור חיצוני.</span>
+        </div>
+
+        <div class="field" id="field-api-key" style="display: none;">
+          <label for="ai-api-key-input">מפתח API (API Key)</label>
+          <input type="password" id="ai-api-key-input" placeholder="הזינו מפתח API כאן..." />
+          <span class="help">המפתח נשמר בבטחה בדפדפן שלך בלבד (`localStorage`).</span>
+        </div>
+
+        <div class="field" id="field-server-url" style="display: none;">
+          <label for="ai-server-url-input">כתובת שרת מקומי (Server URL)</label>
+          <input type="text" id="ai-server-url-input" placeholder="http://localhost:11434/v1" />
+        </div>
+
+        <div class="btn-row" style="margin-top: 16px;">
+          <button type="button" class="btn btn-primary" id="btn-save-ai-settings">שמירת הגדרות</button>
+          <button type="button" class="btn btn-outline" id="btn-cancel-ai-settings">ביטול</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Detail modal -->
     <div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal">
@@ -345,7 +402,7 @@
 
     <script src="js/storage.js"></script>
     <script src="js/export.js"></script>
-    <script src="js/chat.js?v=local_only" type="module"></script>
+    <script src="js/chat.js?v=v2"></script>
     <script src="js/app.js"></script>
   </body>
 </html>
