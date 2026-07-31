@@ -429,6 +429,12 @@
     refreshHome();
     setView("home");
     registerSW();
+
+    window.addEventListener("amarel:data-changed", () => {
+      refreshDatalists();
+      refreshHome();
+      renderResults();
+    });
   }
 
   document.addEventListener("DOMContentLoaded", init);
