@@ -1,242 +1,143 @@
 /**
- * Local storage layer with a future remote API hook.
- * When a server exists, set API_BASE and implement remote methods.
+ * Supabase Storage implementation for Amarel Interview Insights.
  */
 const Storage = (() => {
-  const KEYS = {
-    insights: "amarel_insights_v1",
-    departments: "amarel_departments_v1",
-    jobs: "amarel_jobs_v1",
-    roles: "amarel_roles_v1",
+  const SUPABASE_URL = "https://esdksihfrirldclboltc.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_msrylgqAhtCy0vlbCYXMYQ_vGiyIKVm";
+  
+  const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+  const DEFAULT_DEPARTMENTS = ["àéðèâøöéä", "ðéñåééí"];
+
+  let data = {
+    insights: [],
+    departments: [],
+    jobs: [],
+    roles: []
   };
 
-  /** Future server endpoint, e.g. "https://api.example.com" */
-  const API_BASE = null;
+  async function init() {
+    if (!supabase) {
+      console.warn("Supabase not loaded");
+      return;
+    }
+    await refreshAll();
+  }
 
-  const DEFAULT_DEPARTMENTS = [
-    "××™× ×˜×’×¨×¦×™×”",
-    "× ×™×¡×•×™×™×",
-  ];
-
-  function read(key, fallback) {
+  async function refreshAll() {
     try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return structuredClone(fallback);
-      return JSON.parse(raw);
-    } catch {
-      return structuredClone(fallback);
+      const [ins, deps, jobs, roles] = await Promise.all([
+        supabase.from("insights").select("*").order("created_at", { ascending: false }),
+        supabase.from("departments").select("name"),
+        supabase.from("jobs").select("name"),
+        supabase.from("roles").select("name")
+      ]);
+
+      if (ins.data) data.insights = ins.data.map(mapFromDb);
+      if (deps.data) data.departments = deps.data.map(d => d.name);
+      if (jobs.data) data.jobs = jobs.data.map(j => j.name);
+      if (roles.data) data.roles = roles.data.map(r => r.name);
+    } catch (err) {
+      console.error("Failed to fetch from Supabase:", err);
     }
   }
 
-  function write(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+  function mapFromDb(row) {
+    return {
+      id: row.id,
+      managerName: row.manager_name,
+      managerRole: row.manager_role,
+      department: row.department,
+      jobTitle: row.job_title,
+      intervieweeName: row.interviewee_name,
+      insights: row.insights,
+      situations: row.situations,
+      cases: row.cases,
+      createdAt: row.created_at,
+      updated_at: row.updated_at
+    };
   }
 
-  function uid() {
-    if (crypto.randomUUID) return crypto.randomUUID();
-    return `id_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  }
-
-  function ensureSeed() {
-    const deps = read(KEYS.departments, null);
-    if (!deps || !Array.isArray(deps) || deps.length === 0) {
-      write(KEYS.departments, DEFAULT_DEPARTMENTS);
-    }
-    if (!read(KEYS.jobs, null)) write(KEYS.jobs, []);
-    if (!read(KEYS.roles, null)) write(KEYS.roles, []);
-    if (!read(KEYS.insights, null)) write(KEYS.insights, []);
+  function mapToDb(item) {
+    return {
+      manager_name: item.managerName,
+      manager_role: item.managerRole,
+      department: item.department,
+      job_title: item.jobTitle,
+      interviewee_name: item.intervieweeName,
+      insights: item.insights,
+      situations: item.situations,
+      cases: item.cases
+    };
   }
 
   function getDepartments() {
-    ensureSeed();
-    return read(KEYS.departments, DEFAULT_DEPARTMENTS).sort((a, b) =>
-      a.localeCompare(b, "he")
-    );
+    return [...new Set([...data.departments, ...DEFAULT_DEPARTMENTS])].sort((a, b) => a.localeCompare(b, "he"));
   }
 
-  function addDepartment(name) {
+  async function addDepartment(name) {
     const clean = String(name || "").trim();
-    if (!clean) return getDepartments();
-    const list = getDepartments();
-    if (!list.some((d) => d.toLowerCase() === clean.toLowerCase())) {
-      list.push(clean);
-      write(KEYS.departments, list);
-    }
-    return getDepartments();
+    if (!clean || data.departments.includes(clean)) return;
+    await supabase.from("departments").upsert({ name: clean });
+    await refreshAll();
   }
 
-  function getJobs() {
-    ensureSeed();
-    return read(KEYS.jobs, []).sort((a, b) => a.localeCompare(b, "he"));
-  }
+  function getJobs() { return data.jobs.sort((a, b) => a.localeCompare(b, "he")); }
 
-  function addJob(name) {
+  async function addJob(name) {
     const clean = String(name || "").trim();
-    if (!clean) return getJobs();
-    const list = getJobs();
-    if (!list.some((j) => j.toLowerCase() === clean.toLowerCase())) {
-      list.push(clean);
-      write(KEYS.jobs, list);
-    }
-    return getJobs();
+    if (!clean || data.jobs.includes(clean)) return;
+    await supabase.from("jobs").upsert({ name: clean });
+    await refreshAll();
   }
 
-  function getRoles() {
-    ensureSeed();
-    return read(KEYS.roles, []).sort((a, b) => a.localeCompare(b, "he"));
-  }
+  function getRoles() { return data.roles.sort((a, b) => a.localeCompare(b, "he")); }
 
-  function addRole(name) {
+  async function addRole(name) {
     const clean = String(name || "").trim();
-    if (!clean) return getRoles();
-    const list = getRoles();
-    if (!list.some((r) => r.toLowerCase() === clean.toLowerCase())) {
-      list.push(clean);
-      write(KEYS.roles, list);
-    }
-    return getRoles();
+    if (!clean || data.roles.includes(clean)) return;
+    await supabase.from("roles").upsert({ name: clean });
+    await refreshAll();
   }
 
-  function getInsights() {
-    ensureSeed();
-    return read(KEYS.insights, []).sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    );
-  }
+  function getInsights() { return data.insights; }
 
-  function getInsightById(id) {
-    return getInsights().find((i) => i.id === id) || null;
-  }
+  function getInsightById(id) { return data.insights.find(i => i.id === id) || null; }
 
-  /**
-   * Persist insight locally. Ready for POST to API_BASE later.
-   */
   async function saveInsight(payload) {
-    const item = {
-      id: payload.id || uid(),
-      managerName: payload.managerName.trim(),
-      managerRole: payload.managerRole.trim(),
-      department: payload.department.trim(),
-      jobTitle: payload.jobTitle.trim(),
-      intervieweeName: payload.intervieweeName.trim(),
-      insights: (payload.insights || "").trim(),
-      situations: (payload.situations || "").trim(),
-      cases: (payload.cases || "").trim(),
-      createdAt: payload.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      synced: false,
-    };
-
-    addDepartment(item.department);
-    addJob(item.jobTitle);
-    addRole(item.managerRole);
-
-    const list = getInsights();
-    const idx = list.findIndex((x) => x.id === item.id);
-    if (idx >= 0) list[idx] = item;
-    else list.unshift(item);
-    write(KEYS.insights, list);
-
-    // Future server sync hook
-    if (API_BASE) {
-      try {
-        await fetch(`${API_BASE}/insights`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item),
-        });
-        item.synced = true;
-        const updated = getInsights().map((x) =>
-          x.id === item.id ? { ...x, synced: true } : x
-        );
-        write(KEYS.insights, updated);
-      } catch (err) {
-        console.warn("Server sync deferred:", err);
-      }
+    const dbItem = mapToDb(payload);
+    let result;
+    if (payload.id && payload.id.length > 20) {
+      result = await supabase.from("insights").update(dbItem).eq("id", payload.id).select();
+    } else {
+      result = await supabase.from("insights").insert([dbItem]).select();
     }
-
-    return item;
+    if (result.error) throw result.error;
+    await Promise.all([addDepartment(payload.department), addJob(payload.jobTitle), addRole(payload.managerRole)]);
+    await refreshAll();
+    return mapFromDb(result.data[0]);
   }
 
   async function deleteInsight(id) {
-    const list = getInsights().filter((x) => x.id !== id);
-    write(KEYS.insights, list);
-    if (API_BASE) {
-      try {
-        await fetch(`${API_BASE}/insights/${id}`, { method: "DELETE" });
-      } catch (err) {
-        console.warn("Server delete deferred:", err);
-      }
-    }
+    await supabase.from("insights").delete().eq("id", id);
+    await refreshAll();
   }
 
   function searchInsights(query = {}, filters = {}) {
-    const q = String(query.q || "")
-      .trim()
-      .toLowerCase();
-    const department = String(filters.department || "").trim();
-    const jobTitle = String(filters.jobTitle || "").trim();
-    const managerRole = String(filters.managerRole || "").trim();
-
-    return getInsights().filter((item) => {
-      if (department && item.department !== department) return false;
-      if (jobTitle && item.jobTitle !== jobTitle) return false;
-      if (managerRole && item.managerRole !== managerRole) return false;
+    const q = String(query.q || "").trim().toLowerCase();
+    return data.insights.filter(item => {
+      if (filters.department && item.department !== filters.department) return false;
+      if (filters.jobTitle && item.jobTitle !== filters.jobTitle) return false;
+      if (filters.managerRole && item.managerRole !== filters.managerRole) return false;
       if (!q) return true;
-
-      const hay = [
-        item.managerName,
-        item.managerRole,
-        item.department,
-        item.jobTitle,
-        item.intervieweeName,
-        item.insights,
-        item.situations,
-        item.cases,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return q.split(/\s+/).every((token) => hay.includes(token));
+      const hay = [item.managerName, item.managerRole, item.department, item.jobTitle, item.intervieweeName, item.insights, item.situations, item.cases].join(" ").toLowerCase();
+      return q.split(/\s+/).every(token => hay.includes(token));
     });
   }
 
-  function exportAll() {
-    return {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      insights: getInsights(),
-      departments: getDepartments(),
-      jobs: getJobs(),
-      roles: getRoles(),
-    };
-  }
+  function stats() { return { total: data.insights.length, departments: getDepartments().length, jobs: data.jobs.length }; }
 
-  function stats() {
-    const insights = getInsights();
-    return {
-      total: insights.length,
-      departments: getDepartments().length,
-      jobs: getJobs().length,
-    };
-  }
+  init();
 
-  ensureSeed();
-
-  return {
-    getDepartments,
-    addDepartment,
-    getJobs,
-    addJob,
-    getRoles,
-    addRole,
-    getInsights,
-    getInsightById,
-    saveInsight,
-    deleteInsight,
-    searchInsights,
-    exportAll,
-    stats,
-    API_BASE,
-  };
+  return { getDepartments, addDepartment, getJobs, addJob, getRoles, addRole, getInsights, getInsightById, saveInsight, deleteInsight, searchInsights, stats };
 })();
