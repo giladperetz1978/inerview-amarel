@@ -930,6 +930,50 @@ textarea:focus {
   background: var(--muted);
 }
 
+/* Chat Extracted Insight Card */
+.chat-extracted-card {
+  background: var(--orange-soft);
+  border: 1px solid var(--orange);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.chat-extracted-card h4 {
+  margin: 0 0 8px;
+  color: var(--orange-dark);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-extracted-card .grid-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+.chat-extracted-card .field-item span.lbl {
+  color: var(--muted);
+  display: block;
+  font-size: 0.75rem;
+}
+
+.chat-extracted-card .field-item span.val {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.chat-extracted-card .btn-save-extracted {
+  width: 100%;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
 @media (min-width: 768px) {
   .ai-fab-container {
     bottom: 24px;
