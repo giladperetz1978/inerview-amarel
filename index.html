@@ -26,8 +26,11 @@
         <h1>מאגר ותובנות ראיונות באמרל</h1>
         <span class="subtitle">שיתוף ידע בין מנהלים מגייסים</span>
       </div>
-      <div class="logo-wrap" title="Amarel">
-        <img src="icons/logo.png" alt="Amarel – The How Company" />
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" id="btn-theme-toggle" class="btn-icon" title="החלפת ערכת נושא (Dark/Light)">🌙</button>
+        <div class="logo-wrap" title="Amarel">
+          <img src="icons/logo.png" alt="Amarel – The How Company" />
+        </div>
       </div>
     </header>
 
@@ -192,7 +195,10 @@
             </div>
 
             <div class="field">
-              <label for="f-insights">תובנות מהראיון</label>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label for="f-insights">תובנות מהראיון</label>
+                <button type="button" class="btn-voice-input btn-icon" data-target="f-insights" title="הכתוביה קולית">🎤 הקלט</button>
+              </div>
               <textarea
                 id="f-insights"
                 name="insights"
@@ -201,7 +207,10 @@
             </div>
 
             <div class="field">
-              <label for="f-situations">סיטואציות</label>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label for="f-situations">סיטואציות</label>
+                <button type="button" class="btn-voice-input btn-icon" data-target="f-situations" title="הכתוביה קולית">🎤 הקלט</button>
+              </div>
               <textarea
                 id="f-situations"
                 name="situations"
@@ -210,7 +219,10 @@
             </div>
 
             <div class="field">
-              <label for="f-cases">מקרים ותגובות</label>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label for="f-cases">מקרים ותגובות</label>
+                <button type="button" class="btn-voice-input btn-icon" data-target="f-cases" title="הכתוביה קולית">🎤 הקלט</button>
+              </div>
               <textarea
                 id="f-cases"
                 name="cases"
@@ -282,6 +294,7 @@
             <button type="button" class="btn-chip" data-action="summarize">📋 סיכום תובנות</button>
             <button type="button" class="btn-chip" data-action="analyze">📊 ניתוח מגמות</button>
             <button type="button" class="btn-chip" data-action="tips">💡 טיפים לראיון</button>
+            <button type="button" class="btn-chip" data-action="prep">🎯 הכנת תסריט ראיון</button>
           </div>
 
           <div class="chat-messages" id="chat-messages" style="min-height: 340px;">
@@ -330,6 +343,7 @@
             <button type="button" class="btn-chip" data-action="summarize">📋 סיכום תובנות</button>
             <button type="button" class="btn-chip" data-action="analyze">📊 ניתוח מגמות</button>
             <button type="button" class="btn-chip" data-action="tips">💡 טיפים לראיון</button>
+            <button type="button" class="btn-chip" data-action="prep">🎯 הכנת תסריט ראיון</button>
           </div>
 
           <div class="chat-messages" id="widget-messages">
