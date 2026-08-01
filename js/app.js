@@ -476,11 +476,62 @@
       renderResults();
     });
 
-    // PWA install
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      state.deferredPrompt = e;
-      $("#install-banner")?.classList.add("show");
+    // Voice Speech to Text Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      $$(".btn-voice-input").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.dataset.target;
+          const targetInput = $(`#${targetId}`);
+          if (!targetInput) return;
+
+          const recognition = new SpeechRecognition();
+          recognition.lang = "he-IL";
+          recognition.interimResults = false;
+
+          btn.classList.add("recording");
+          btn.textContent = "🎙️ מקליט...";
+          toast("מקליט... דבר/י כעת בעברית", "info");
+
+          recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            if (transcript) {
+              const currentVal = targetInput.value.trim();
+              targetInput.value = currentVal ? `${currentVal}\n${transcript}` : transcript;
+              toast("התמליל התווסף בהצלחה!", "success");
+            }
+          };
+
+          recognition.onerror = (err) => {
+            console.warn("Speech error:", err);
+            toast("שגיאה בזיהוי דיבור. נסו שוב", "error");
+          };
+
+          recognition.onend = () => {
+            btn.classList.remove("recording");
+            btn.textContent = "🎤 הקלט";
+          };
+
+          recognition.start();
+        });
+      });
+    } else {
+      $$(".btn-voice-input").forEach((btn) => (btn.style.display = "none"));
+    }
+
+    // Theme toggle (Dark / Light)
+    const btnTheme = $("#btn-theme-toggle");
+    const currentTheme = localStorage.getItem("amarel_theme") || "light";
+    if (currentTheme === "dark") {
+      document.body.classList.add("dark-mode");
+      if (btnTheme) btnTheme.textContent = "☀️";
+    }
+
+    btnTheme?.addEventListener("click", () => {
+      const isDark = document.body.classList.toggle("dark-mode");
+      localStorage.setItem("amarel_theme", isDark ? "dark" : "light");
+      btnTheme.textContent = isDark ? "☀️" : "🌙";
+      toast(isDark ? "מצב לילה הופעל" : "מצב יום הופעל");
     });
 
     $("#btn-install")?.addEventListener("click", async () => {
