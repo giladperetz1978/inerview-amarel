@@ -97,11 +97,16 @@
         <div class="card no-print" style="margin-top: 16px">
           <h2>ניהול מאגר</h2>
           <p class="hint">
-            כרגע השמירה מקומית במכשיר (מוכנה לחיבור לשרת בעתיד). מומלץ לגבות מעת לעת.
+            ניהול גיבויים וסל מחזור לשחזור תובנות שנמחקו.
           </p>
-          <button type="button" class="btn btn-outline btn-block" id="btn-backup">
-            הורדת גיבוי JSON
-          </button>
+          <div class="btn-row">
+            <button type="button" class="btn btn-outline" id="btn-backup">
+              הורדת גיבוי JSON
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-open-trash">
+              🗑️ סל מחזור <span class="badge" id="trash-badge" style="margin-right:4px;">0</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -392,6 +397,24 @@
           <button type="button" class="btn btn-outline" id="modal-close" aria-label="סגירה">✕</button>
         </div>
         <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Trash Modal (Recycle Bin) -->
+    <div class="modal-backdrop" id="trash-modal" role="dialog" aria-modal="true" aria-labelledby="trash-title">
+      <div class="modal" style="max-width: 600px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <strong id="trash-title">🗑️ סל מחזור</strong>
+          <button type="button" class="btn btn-outline" id="trash-modal-close" aria-label="סגירה">✕</button>
+        </div>
+        <p class="hint" style="margin-bottom: 12px;">
+          תובנות שנמחקו נשמרות בסל המחזור. ניתן לשחזר אותן בכל עת או למחוק אותן לצמיתות.
+        </p>
+        <div id="trash-list" class="insight-list" style="max-height: 360px; overflow-y: auto; margin-bottom: 12px;"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-danger" id="btn-empty-trash">🗑️ ריקון סל המחזור</button>
+          <button type="button" class="btn btn-outline" id="btn-close-trash-modal">סגירה</button>
+        </div>
       </div>
     </div>
 

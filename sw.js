@@ -1,5 +1,5 @@
 /* Amarel Interview Insights – Service Worker */
-const CACHE = "amarel-insights-v4";
+const CACHE = "amarel-insights-v5";
 const ASSETS = [
   "./",
   "./index.html",

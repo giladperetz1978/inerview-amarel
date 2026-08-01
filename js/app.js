@@ -97,6 +97,7 @@
     $("#stat-total").textContent = s.total;
     $("#stat-deps").textContent = s.departments;
     $("#stat-jobs").textContent = s.jobs;
+    if ($("#trash-badge")) $("#trash-badge").textContent = s.trashTotal || 0;
 
     const recent = Storage.getInsights().slice(0, 5);
     const box = $("#recent-list");
@@ -231,17 +232,17 @@
         <button type="button" class="btn btn-primary" id="modal-pdf">ייצוא PDF</button>
         <button type="button" class="btn btn-secondary" id="modal-mail">Outlook</button>
         <button type="button" class="btn btn-outline" id="modal-close-2">סגירה</button>
-        <button type="button" class="btn btn-danger" id="modal-delete">מחיקה</button>
+        <button type="button" class="btn btn-danger" id="modal-delete">🗑️ העברה לסל מחזור</button>
       </div>`;
     $("#modal").classList.add("open");
     $("#modal-pdf").onclick = () => safePdf(item);
     $("#modal-mail").onclick = () => safeMail(item);
     $("#modal-close-2").onclick = closeModal;
     $("#modal-delete").onclick = async () => {
-      if (!confirm("למחוק את הרשומה מהמאגר?")) return;
-      await Storage.deleteInsight(id);
+      if (!confirm("האם להעביר את תובנת הראיון לסל המחזור?")) return;
+      await Storage.moveToTrash(id);
       closeModal();
-      toast("הרשומה נמחקה", "success");
+      toast("הרשומה הועברה לסל המחזור", "success");
       refreshHome();
       renderResults();
     };
@@ -250,6 +251,71 @@
   function closeModal() {
     $("#modal").classList.remove("open");
     state.selectedId = null;
+  }
+
+  function renderTrashList() {
+    const list = Storage.getTrashItems();
+    const box = $("#trash-list");
+    if (!box) return;
+
+    if (!list || !list.length) {
+      box.innerHTML = `
+        <div class="empty-state" style="padding: 24px; text-align: center;">
+          <strong>סל המחזור ריק</strong>
+          אין תובנות שנמחקו כרגע.
+        </div>`;
+      return;
+    }
+
+    box.innerHTML = list.map((item) => `
+      <div class="insight-card" style="border-color: var(--line); margin-bottom: 8px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div>
+            <h4 style="margin:0 0 4px; font-size:1rem; color:var(--ink);">${escapeHtml(item.jobTitle)}</h4>
+            <div class="meta" style="font-size:0.8rem; color:var(--muted);">
+              ${escapeHtml(item.managerName)} · ${escapeHtml(item.department)}
+            </div>
+          </div>
+          <span class="tag" style="background:#fee2e2; color:#dc2626;">נמחק</span>
+        </div>
+        <div class="btn-row" style="margin-top:10px; gap:8px;">
+          <button type="button" class="btn btn-outline btn-restore-trash" data-id="${escapeAttr(item.id)}">↩️ שחזור</button>
+          <button type="button" class="btn btn-danger btn-perm-delete-trash" data-id="${escapeAttr(item.id)}">❌ מחיקה לצמיתות</button>
+        </div>
+      </div>
+    `).join("");
+
+    box.querySelectorAll(".btn-restore-trash").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        await Storage.restoreFromTrash(id);
+        toast("הרשומה שוחזרה בהצלחה", "success");
+        renderTrashList();
+        refreshHome();
+        renderResults();
+      });
+    });
+
+    box.querySelectorAll(".btn-perm-delete-trash").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        if (!confirm("האם למחוק את הרשומה לצמיתות? לא ניתן יהיה לשחזר אותה!")) return;
+        await Storage.permanentlyDelete(id);
+        toast("הרשומה נמחקה לצמיתות", "success");
+        renderTrashList();
+        refreshHome();
+        renderResults();
+      });
+    });
+  }
+
+  function openTrashModal() {
+    renderTrashList();
+    $("#trash-modal")?.classList.add("open");
+  }
+
+  function closeTrashModal() {
+    $("#trash-modal")?.classList.remove("open");
   }
 
   function safePdf(item) {
@@ -392,6 +458,22 @@
     $("#btn-backup")?.addEventListener("click", () => {
       ExportUtil.downloadJsonBackup(Storage.exportAll());
       toast("הגיבוי הורד", "success");
+    });
+
+    $("#btn-open-trash")?.addEventListener("click", openTrashModal);
+    $("#trash-modal-close")?.addEventListener("click", closeTrashModal);
+    $("#btn-close-trash-modal")?.addEventListener("click", closeTrashModal);
+    $("#trash-modal")?.addEventListener("click", (e) => {
+      if (e.target.id === "trash-modal") closeTrashModal();
+    });
+
+    $("#btn-empty-trash")?.addEventListener("click", async () => {
+      if (!confirm("האם לרוקן את סל המחזור ולמחוק את כל הפריטים לצמיתות?")) return;
+      await Storage.emptyTrash();
+      toast("סל המחזור רוקן לצמיתות", "success");
+      renderTrashList();
+      refreshHome();
+      renderResults();
     });
 
     // PWA install

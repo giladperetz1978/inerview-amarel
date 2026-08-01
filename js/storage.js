@@ -1,11 +1,12 @@
 ﻿/**
  * Supabase & LocalStorage hybrid implementation for Amarel Interview Insights.
- * Ensures data is saved to Supabase database AND updated live across all views.
+ * Includes Recycle Bin (Trash) functionality with Restore & Permanent Delete.
  */
 const Storage = (() => {
   const SUPABASE_URL = "https://esdksihfrirldclboltc.supabase.co";
   const SUPABASE_KEY = "sb_publishable_msrylgqAhtCy0vlbCYXMYQ_vGiyIKVm";
   const LOCAL_KEY = "amarel_insights_v1";
+  const TRASH_KEY = "amarel_trash_v1";
 
   const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
@@ -13,6 +14,7 @@ const Storage = (() => {
 
   let data = {
     insights: [],
+    trash: [],
     departments: [],
     jobs: [],
     roles: []
@@ -26,26 +28,26 @@ const Storage = (() => {
     window.dispatchEvent(new CustomEvent("amarel:data-changed"));
   }
 
-  function readLocal() {
+  function readLocal(key) {
     try {
-      const raw = localStorage.getItem(LOCAL_KEY);
+      const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
     }
   }
 
-  function writeLocal(list) {
+  function writeLocal(key, list) {
     try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(list));
+      localStorage.setItem(key, JSON.stringify(list));
     } catch (e) {
       console.warn("Failed to write to localStorage:", e);
     }
   }
 
   async function refreshAll() {
-    const localItems = readLocal();
-    data.insights = localItems;
+    data.insights = readLocal(LOCAL_KEY);
+    data.trash = readLocal(TRASH_KEY);
 
     if (!supabase) {
       console.warn("Supabase client not loaded, using localStorage.");
@@ -61,8 +63,10 @@ const Storage = (() => {
       ]);
 
       if (ins.data && ins.data.length > 0) {
-        data.insights = ins.data.map(mapFromDb);
-        writeLocal(data.insights);
+        // Filter out items that are currently in local trash
+        const trashIds = new Set(data.trash.map(t => String(t.id)));
+        data.insights = ins.data.map(mapFromDb).filter(item => !trashIds.has(String(item.id)));
+        writeLocal(LOCAL_KEY, data.insights);
       }
       if (deps.data && deps.data.length > 0) {
         data.departments = deps.data.map(d => d.name);
@@ -157,6 +161,10 @@ const Storage = (() => {
     return data.insights;
   }
 
+  function getTrashItems() {
+    return data.trash;
+  }
+
   function getInsightById(id) {
     return data.insights.find(i => String(i.id) === String(id)) || null;
   }
@@ -190,8 +198,6 @@ const Storage = (() => {
 
         if (result.data && result.data[0]) {
           savedItem = mapFromDb(result.data[0]);
-        } else if (result.error) {
-          console.warn("Supabase returned error on save:", result.error);
         }
       } catch (err) {
         console.warn("Supabase save exception, saving locally:", err);
@@ -208,7 +214,7 @@ const Storage = (() => {
     } else {
       data.insights.unshift(savedItem);
     }
-    writeLocal(data.insights);
+    writeLocal(LOCAL_KEY, data.insights);
 
     await Promise.all([
       addDepartment(savedItem.department),
@@ -220,15 +226,69 @@ const Storage = (() => {
     return savedItem;
   }
 
-  async function deleteInsight(id) {
+  // Soft Delete: Move to Trash
+  async function moveToTrash(id) {
+    const item = getInsightById(id);
+    if (!item) return;
+
     data.insights = data.insights.filter(x => String(x.id) !== String(id));
-    writeLocal(data.insights);
+    writeLocal(LOCAL_KEY, data.insights);
+
+    const trashedItem = {
+      ...item,
+      deletedAt: new Date().toISOString()
+    };
+
+    data.trash.unshift(trashedItem);
+    writeLocal(TRASH_KEY, data.trash);
+
+    notifyChange();
+    return trashedItem;
+  }
+
+  // Restore item from Trash back to active Insights & Supabase
+  async function restoreFromTrash(id) {
+    const trashedIdx = data.trash.findIndex(x => String(x.id) === String(id));
+    if (trashedIdx < 0) return;
+
+    const item = data.trash[trashedIdx];
+    data.trash.splice(trashedIdx, 1);
+    writeLocal(TRASH_KEY, data.trash);
+
+    delete item.deletedAt;
+    await saveInsight(item);
+  }
+
+  // Permanent Delete from Supabase & Local Storage
+  async function permanentlyDelete(id) {
+    data.trash = data.trash.filter(x => String(x.id) !== String(id));
+    writeLocal(TRASH_KEY, data.trash);
+
+    data.insights = data.insights.filter(x => String(x.id) !== String(id));
+    writeLocal(LOCAL_KEY, data.insights);
 
     if (supabase) {
       try {
         await supabase.from("insights").delete().eq("id", id);
       } catch (err) {
         console.warn("Supabase delete error:", err);
+      }
+    }
+
+    notifyChange();
+  }
+
+  // Empty entire Trash bin
+  async function emptyTrash() {
+    const ids = data.trash.map(t => t.id);
+    data.trash = [];
+    writeLocal(TRASH_KEY, data.trash);
+
+    if (supabase && ids.length > 0) {
+      try {
+        await supabase.from("insights").delete().in("id", ids);
+      } catch (err) {
+        console.warn("Supabase empty trash error:", err);
       }
     }
 
@@ -259,6 +319,7 @@ const Storage = (() => {
   function stats() {
     return {
       total: data.insights.length,
+      trashTotal: data.trash.length,
       departments: getDepartments().length,
       jobs: getJobs().length
     };
@@ -274,9 +335,13 @@ const Storage = (() => {
     getRoles,
     addRole,
     getInsights,
+    getTrashItems,
     getInsightById,
     saveInsight,
-    deleteInsight,
+    moveToTrash,
+    restoreFromTrash,
+    permanentlyDelete,
+    emptyTrash,
     searchInsights,
     stats,
     refreshAll
