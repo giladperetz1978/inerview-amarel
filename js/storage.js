@@ -242,6 +242,15 @@ const Storage = (() => {
     data.trash.unshift(trashedItem);
     writeLocal(TRASH_KEY, data.trash);
 
+    // Also delete immediately from Supabase so refreshAll won't bring it back
+    if (supabase) {
+      try {
+        await supabase.from("insights").delete().eq("id", id);
+      } catch (err) {
+        console.warn("Supabase delete on moveToTrash error:", err);
+      }
+    }
+
     notifyChange();
     return trashedItem;
   }
