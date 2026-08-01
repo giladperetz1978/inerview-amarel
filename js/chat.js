@@ -218,53 +218,96 @@
   // --- AUTOMATIC INSIGHT EXTRACTION FROM NATURAL TEXT ---
   function parseInsightFromNaturalText(text) {
     const t = String(text || "").trim();
-    if (t.length < 12) return null;
+    if (t.length < 8) return null;
 
     const lower = t.toLowerCase();
-    const keywords = ["ראיינתי", "ראיון", "מועמד", "מנהל", "מחלקה", "תובנה", "משרה", "סיטואציה", "מקרים"];
+    const keywords = ["ראיינתי", "ראיון", "מועמד", "מועמדת", "מנהל", "מחלקה", "תובנה", "משרה", "סיטואציה", "מקרים", "אני "];
     const matchesKeyword = keywords.some((k) => lower.includes(k));
     if (!matchesKeyword) return null;
 
-    // Pattern Extractors
-    const extractPattern = (regexes, fallback = "") => {
-      for (const r of regexes) {
-        const match = t.match(r);
-        if (match && match[1]) return match[1].trim();
-      }
-      return fallback;
+    // Helper: strip trailing punctuation & common stop words
+    const cleanWord = (str) => {
+      if (!str) return "";
+      return str.replace(/^[,\.\-:\s]+|[,\.\-:\s]+$/g, "").trim();
     };
 
-    const intervieweeName = extractPattern([
-      /(?:מרואיין|מועמד|את|עם)\s*:?\s*([א-תA-Za-z\s]{2,20})(?=\s+(?:לתפקיד|במחלקה|מנהל|שם|תובנה|$))/i,
-      /(?:ראיינתי|ראיון עם)\s+([א-תA-Za-z\s]{2,20})/i,
-    ], "מועמד חדש");
+    // 1. Manager Name
+    let managerName = "";
+    const managerPatterns = [
+      /(?:אני|שמי)\s+([א-תA-Za-z']+(?:\s+[א-תA-Za-z']+){1,2})(?=\s*[\,,\.]|\s+(?:ראיינתי|מנהל|במשרת|ממחלקת|$))/i,
+      /(?:מנהל מגייס|מנהל|שם המנהל)\s*:?\s*([א-תA-Za-z']+(?:\s+[א-תA-Za-z']+){1,2})/i,
+    ];
+    for (const p of managerPatterns) {
+      const m = t.match(p);
+      if (m && m[1]) {
+        managerName = cleanWord(m[1]);
+        break;
+      }
+    }
 
-    const jobTitle = extractPattern([
-      /(?:משרה|לתפקיד|משרת|תפקיד)\s*:?\s*([א-תA-Za-z0-9\/\s]{2,30})(?=\s+(?:במחלקה|מנהל|מועמד|תובנה|$))/i,
-      /(?:פיתוח|מפתח|אינטגרציה|מהנדס|בודק|מנהל)\s*[א-תA-Za-z0-9\/\s]{0,20}/i,
-    ], "משרה מיועדת");
+    // 2. Interviewee Name
+    let intervieweeName = "";
+    const intervieweePatterns = [
+      /(?:ראיינתי|ראיון עם|ראיינו)\s+(?:היום\s+)?(?:את\s+)?([א-תA-Za-z']+(?:\s+[א-תA-Za-z']+){1,2})(?=\s+(?:לתפקיד|למשרת|משרה|במחלקה|כמנהל|תובנה|$|[\,,\.]))/i,
+      /(?:מרואיין|מועמד|מועמדת)\s*:?\s*([א-תA-Za-z']+(?:\s+[א-תA-Za-z']+){1,2})/i,
+    ];
+    for (const p of intervieweePatterns) {
+      const m = t.match(p);
+      if (m && m[1]) {
+        intervieweeName = cleanWord(m[1]);
+        break;
+      }
+    }
 
-    const department = extractPattern([
-      /(?:מחלקה|מחלקת)\s*:?\s*([א-תA-Za-z\s]{2,20})(?=\s+|$)/i,
-    ], "אינטגרציה");
+    // 3. Job Title
+    let jobTitle = "";
+    const jobPatterns = [
+      /(?:למשרת|לתפקיד|משרת|משרה|תפקיד)\s*:?\s*([א-תA-Za-z0-9\/\s\-]{2,30})(?=\s*[\,,\.]|\s+(?:במחלקה|מנהל|מועמד|תובנה|ואז|והתובנות|$))/i,
+      /(?:מנהל|מנהלת|מפתח|מפתחת|בודק|בודקת|אינטגרטור|מהנדס|מהנדסת)\s+[א-תA-Za-z0-9\/\s\-]{2,25}/i,
+    ];
+    for (const p of jobPatterns) {
+      const m = t.match(p);
+      if (m && m[1]) {
+        jobTitle = cleanWord(m[1]);
+        break;
+      } else if (m && m[0]) {
+        jobTitle = cleanWord(m[0]);
+        break;
+      }
+    }
 
-    const managerName = extractPattern([
-      /(?:מנהל מגייס|מנהל|שם המנהל)\s*:?\s*([א-תA-Za-z\s]{2,20})/i,
-    ], "מנהל מגייס");
+    // 4. Department
+    let department = "";
+    const depPatterns = [
+      /(?:במחלקה|מחלקת|מחלקה)\s*:?\s*([א-תA-Za-z\s]{2,20})(?=\s*[\,,\.]|\s+|$)/i,
+    ];
+    for (const p of depPatterns) {
+      const m = t.match(p);
+      if (m && m[1]) {
+        department = cleanWord(m[1]);
+        break;
+      }
+    }
 
-    const managerRole = extractPattern([
-      /(?:תפקיד המנהל|תפקיד מנהל)\s*:?\s*([א-תA-Za-z\s]{2,20})/i,
-    ], "מנהל צוות");
+    // Fallback defaults if extraction missed
+    if (!managerName) managerName = "מנהל מגייס";
+    if (!intervieweeName) intervieweeName = "מועמד/ת";
+    if (!jobTitle) jobTitle = "משרה מיועדת";
+    if (!department) department = "אינטגרציה";
 
-    // Clean text for insights
+    // 5. Clean text for insights (remove initial self-intro / metadata phrase if present)
     let insights = t;
     if (t.includes("תובנה:") || t.includes("תובנות:")) {
       insights = t.split(/תובנה:|תובנות:/i)[1]?.trim() || t;
+    } else {
+      // Remove leading intro clause like "אני גלעד פרץ ראיינתי את..." if present
+      insights = t.replace(/^.*?(?:לתפקיד|למשרת|משרה|במחלקה)\s+[א-תA-Za-z0-9\/\s\-]+(?:[\,,\.]\s*|\s+ו?אז\s*)/i, "").trim();
+      if (!insights) insights = t;
     }
 
     return {
       managerName: managerName.slice(0, 30),
-      managerRole: managerRole.slice(0, 30),
+      managerRole: "מנהל מגייס",
       department: department.slice(0, 30),
       jobTitle: jobTitle.slice(0, 40),
       intervieweeName: intervieweeName.slice(0, 30),
